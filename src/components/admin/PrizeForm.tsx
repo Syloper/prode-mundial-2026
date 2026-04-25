@@ -15,14 +15,35 @@ import {
   Paper,
   Alert,
   CircularProgress,
+  Typography,
 } from "@mui/material";
-import { prizeSchema } from "../../utils/validators";
+import { prizeSchema, PrizeFormData } from "../../utils/validators";
 import { usePrize } from "../../hooks/usePrize";
 import { useNotification } from "../../hooks/useNotification";
 import { useAuth } from "../../hooks/useAuth";
 
-export const PrizeForm: React.FC<{ onPrizeCreated?: () => void }> = ({ onPrizeCreated }) => {
-  const { control, handleSubmit, formState: { errors }, reset } = useForm({
+const criteriaDescriptions: Record<string, string> = {
+  most_points_date: "Usuario con más puntos en una fecha específica",
+  most_points_phase: "Usuario con más puntos en una fase (grupos, octavos, etc.)",
+  most_points_tournament: "Usuario con más puntos en todo el torneo",
+};
+
+const tieDescriptions: Record<string, string> = {
+  all: "Entregar a TODOS los ganadores empatados",
+  draw: "Hacer un SORTEO entre los empatados",
+  first: "Entregar al que predijo primero",
+};
+
+export const PrizeForm: React.FC<{ onPrizeCreated?: () => void }> = ({
+  onPrizeCreated,
+}) => {
+  const {
+    control,
+    handleSubmit,
+    formState: { errors },
+    reset,
+    watch,
+  } = useForm<PrizeFormData>({
     resolver: zodResolver(prizeSchema),
     defaultValues: {
       name: "",
@@ -40,11 +61,14 @@ export const PrizeForm: React.FC<{ onPrizeCreated?: () => void }> = ({ onPrizeCr
   const { user } = useAuth();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
 
-  const onSubmit = async (data: any) => {
+  const criteriaValue = watch("criteria");
+  const tieValue = watch("tieResolution");
+
+  const onSubmit = async (data: PrizeFormData) => {
     if (!user) return;
+    setIsSubmitting(true);
     try {
-      setIsSubmitting(true);
-      createPrize({
+      await createPrize({
         name: data.name,
         description: data.description,
         photoUrl: data.photoUrl || undefined,
@@ -58,29 +82,23 @@ export const PrizeForm: React.FC<{ onPrizeCreated?: () => void }> = ({ onPrizeCr
       reset();
       onPrizeCreated?.();
     } catch (err) {
-      addNotification("Error al crear premio", "error");
+      const message = err instanceof Error ? err.message : "Error al crear premio";
+      addNotification(message, "error");
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const criteriaDescriptions: Record<string, string> = {
-    most_points_date: "Usuario con más puntos en una fecha específica",
-    most_points_phase: "Usuario con más puntos en una fase (grupos, octavos, etc)",
-    most_points_tournament: "Usuario con más puntos en todo el torneo",
-  };
-
-  const tieDescriptions: Record<string, string> = {
-    all: "Entregar a TODOS los ganadores empatados",
-    draw: "Hacer un SORTEO entre los empatados",
-    first: "Entregar al primero (por ID/fecha de registro)",
-  };
-
   return (
     <Paper sx={{ p: 3, maxWidth: 600 }}>
-      <h2>Crear Nuevo Premio</h2>
-      <Box component="form" onSubmit={handleSubmit(onSubmit)} sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-        
+      <Typography variant="h6" sx={{ mb: 3, fontWeight: "bold" }}>
+        Crear Nuevo Premio
+      </Typography>
+      <Box
+        component="form"
+        onSubmit={handleSubmit(onSubmit)}
+        sx={{ display: "flex", flexDirection: "column", gap: 2 }}
+      >
         <Controller
           name="name"
           control={control}
@@ -90,7 +108,7 @@ export const PrizeForm: React.FC<{ onPrizeCreated?: () => void }> = ({ onPrizeCr
               label="Nombre del Premio"
               fullWidth
               error={!!errors.name}
-              helperText={errors.name?.message as string}
+              helperText={errors.name?.message}
               placeholder="Ej: Mejor Predictor del Torneo"
             />
           )}
@@ -107,8 +125,8 @@ export const PrizeForm: React.FC<{ onPrizeCreated?: () => void }> = ({ onPrizeCr
               multiline
               rows={3}
               error={!!errors.description}
-              helperText={errors.description?.message as string}
-              placeholder="Describe qué se lleva el ganador"
+              helperText={errors.description?.message}
+              placeholder="Describí qué se lleva el ganador"
             />
           )}
         />
@@ -119,10 +137,10 @@ export const PrizeForm: React.FC<{ onPrizeCreated?: () => void }> = ({ onPrizeCr
           render={({ field }) => (
             <TextField
               {...field}
-              label="URL de Imagen (Opcional)"
+              label="URL de imagen (opcional)"
               fullWidth
               error={!!errors.photoUrl}
-              helperText={errors.photoUrl?.message as string || "Ej: https://example.com/image.jpg"}
+              helperText={errors.photoUrl?.message ?? "Ej: https://example.com/premio.jpg"}
               type="url"
             />
           )}
@@ -141,7 +159,7 @@ export const PrizeForm: React.FC<{ onPrizeCreated?: () => void }> = ({ onPrizeCr
                   <MenuItem value="most_points_tournament">Más puntos del torneo</MenuItem>
                 </Select>
                 <Alert severity="info" sx={{ mt: 1 }}>
-                  {criteriaDescriptions[field.value]}
+                  {criteriaDescriptions[criteriaValue]}
                 </Alert>
               </>
             )}
@@ -196,12 +214,24 @@ export const PrizeForm: React.FC<{ onPrizeCreated?: () => void }> = ({ onPrizeCr
             render={({ field }) => (
               <>
                 <RadioGroup {...field}>
-                  <FormControlLabel value="all" control={<Radio />} label="Entregar a TODOS" />
-                  <FormControlLabel value="draw" control={<Radio />} label="Hacer un SORTEO" />
-                  <FormControlLabel value="first" control={<Radio />} label="Entregar al primero en predecir" />
+                  <FormControlLabel
+                    value="all"
+                    control={<Radio />}
+                    label="Entregar a TODOS"
+                  />
+                  <FormControlLabel
+                    value="draw"
+                    control={<Radio />}
+                    label="Hacer un SORTEO"
+                  />
+                  <FormControlLabel
+                    value="first"
+                    control={<Radio />}
+                    label="Primero en predecir"
+                  />
                 </RadioGroup>
                 <Alert severity="info" sx={{ mt: 1 }}>
-                  {tieDescriptions[field.value]}
+                  {tieDescriptions[tieValue]}
                 </Alert>
               </>
             )}

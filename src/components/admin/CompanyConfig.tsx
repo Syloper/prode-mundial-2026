@@ -1,15 +1,23 @@
 import React, { useState, useEffect } from "react";
-import { Box, TextField, Button, Card, CardHeader, CardContent, Alert, Typography } from "@mui/material";
+import {
+  Box,
+  TextField,
+  Button,
+  Card,
+  CardHeader,
+  CardContent,
+  Alert,
+  Typography,
+  CircularProgress,
+} from "@mui/material";
 import { useCompany } from "../../hooks/useCompany";
-import { useAuth } from "../../hooks/useAuth";
 import { useNotification } from "../../hooks/useNotification";
-import { CompanyConfig } from "../../types";
 
 export const CompanyConfigComponent: React.FC = () => {
   const { company, updateCompany } = useCompany();
-  const { user } = useAuth();
   const { addNotification } = useNotification();
   const [companyName, setCompanyName] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     if (company?.name) {
@@ -17,34 +25,30 @@ export const CompanyConfigComponent: React.FC = () => {
     }
   }, [company]);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!companyName.trim()) {
-      addNotification("El nombre de la empresa no puede estar vacío", "error");
+      addNotification("El nombre no puede estar vacío", "error");
       return;
     }
 
-    if (!user) {
-      addNotification("Debes estar logueado", "error");
-      return;
+    setIsSaving(true);
+    try {
+      await updateCompany(companyName.trim());
+      addNotification("Configuración actualizada", "success");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Error al guardar";
+      addNotification(message, "error");
+    } finally {
+      setIsSaving(false);
     }
-
-    const config: CompanyConfig = {
-      id: company?.id || "default",
-      name: companyName.trim(),
-      updatedAt: new Date(),
-      updatedBy: user.id,
-    };
-
-    updateCompany(config);
-    addNotification("✅ Configuración de empresa actualizada", "success");
   };
 
   return (
     <Card>
-      <CardHeader title="⚙️ Configuración de Empresa" />
+      <CardHeader title="Configuración de Empresa" />
       <CardContent>
         <Alert severity="info" sx={{ mb: 2 }}>
-          Configura el nombre de tu empresa que aparecerá en la barra de navegación junto a "⚽ PRODE 2026"
+          El nombre aparece en la barra de navegación junto a "PRODE 2026".
         </Alert>
 
         <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
@@ -54,7 +58,6 @@ export const CompanyConfigComponent: React.FC = () => {
             value={companyName}
             onChange={(e) => setCompanyName(e.target.value)}
             fullWidth
-            variant="outlined"
           />
 
           {company?.name && (
@@ -62,15 +65,25 @@ export const CompanyConfigComponent: React.FC = () => {
               <Typography variant="caption" sx={{ color: "#666" }}>
                 Configuración actual:
               </Typography>
-              <Typography variant="h6">⚽ PRODE 2026 — {company.name}</Typography>
-              <Typography variant="caption" sx={{ color: "#999", display: "block", mt: 1 }}>
-                Última actualización: {new Date(company.updatedAt).toLocaleString()}
-              </Typography>
+              <Typography variant="h6">PRODE 2026 — {company.name}</Typography>
+              {company.updatedAt && (
+                <Typography
+                  variant="caption"
+                  sx={{ color: "#999", display: "block", mt: 1 }}
+                >
+                  Última actualización:{" "}
+                  {new Date(company.updatedAt).toLocaleString("es-AR")}
+                </Typography>
+              )}
             </Box>
           )}
 
-          <Button variant="contained" color="primary" onClick={handleSave}>
-            Guardar Configuración
+          <Button
+            variant="contained"
+            onClick={handleSave}
+            disabled={isSaving}
+          >
+            {isSaving ? <CircularProgress size={20} /> : "Guardar"}
           </Button>
         </Box>
       </CardContent>

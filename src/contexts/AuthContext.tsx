@@ -1,92 +1,121 @@
 import React, { createContext, useState, useCallback, useEffect } from "react";
-import { User } from "../types";
+import type { Session } from "@supabase/supabase-js";
+import { supabase } from "../lib/supabase";
+import { User, RegisterData } from "../types";
 
 interface AuthContextType {
   user: User | null;
-  token: string | null;
   isLoading: boolean;
   error: string | null;
   login: (email: string, password: string) => Promise<void>;
-  register: (userData: any) => Promise<void>;
-  logout: () => void;
+  register: (data: RegisterData) => Promise<void>;
+  logout: () => Promise<void>;
+  clearError: () => void;
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+async function buildUserFromSession(session: Session): Promise<User | null> {
+  const { data: profile, error } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("id", session.user.id)
+    .single();
+
+  if (error || !profile) return null;
+
+  return {
+    id: session.user.id,
+    email: session.user.email ?? "",
+    name: profile.name,
+    dni: profile.dni,
+    role: profile.role,
+    companyCode: profile.company_code ?? undefined,
+    createdAt: profile.created_at,
+    hasCompanyCode: !!profile.company_code,
+  };
+}
+
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
   const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const savedToken = localStorage.getItem("token");
-    const savedUser = localStorage.getItem("user");
-    if (savedToken && savedUser) {
-      setToken(savedToken);
-      setUser(JSON.parse(savedUser));
-    }
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (session) {
+        const u = await buildUserFromSession(session);
+        setUser(u);
+      }
+      setIsLoading(false);
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (session) {
+        const u = await buildUserFromSession(session);
+        setUser(u);
+      } else {
+        setUser(null);
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   const login = useCallback(async (email: string, password: string) => {
-    setIsLoading(true);
     setError(null);
-    try {
-      const users = JSON.parse(localStorage.getItem("mockUsers") || "[]");
-      const user = users.find((u: any) => u.email === email && u.password === password);
-      if (!user) throw new Error("Credenciales inválidas");
-      setUser(user);
-      setToken("mock-token-" + user.id);
-      localStorage.setItem("token", "mock-token-" + user.id);
-      localStorage.setItem("user", JSON.stringify(user));
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Error";
+    const { error: authError } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+    if (authError) {
+      const message =
+        authError.message === "Invalid login credentials"
+          ? "Email o contraseña incorrectos"
+          : authError.message;
       setError(message);
-      throw err;
-    } finally {
-      setIsLoading(false);
+      throw new Error(message);
     }
   }, []);
 
-  const register = useCallback(async (userData: any) => {
-    setIsLoading(true);
+  const register = useCallback(async (data: RegisterData) => {
     setError(null);
-    try {
-      const users = JSON.parse(localStorage.getItem("mockUsers") || "[]");
-      if (users.find((u: any) => u.email === userData.email)) {
-        throw new Error("Email ya registrado");
-      }
-      const newUser = {
-        id: Date.now().toString(),
-        ...userData,
-        role: "user",
-        createdAt: new Date(),
-        hasCompanyCode: !!userData.companyCode,
-      };
-      users.push(newUser);
-      localStorage.setItem("mockUsers", JSON.stringify(users));
-      setUser(newUser);
-      setToken("mock-token-" + newUser.id);
-      localStorage.setItem("token", "mock-token-" + newUser.id);
-      localStorage.setItem("user", JSON.stringify(newUser));
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Error";
+    const { error: authError } = await supabase.auth.signUp({
+      email: data.email,
+      password: data.password,
+      options: {
+        data: {
+          name: data.name,
+          dni: data.dni,
+          company_code: data.companyCode || null,
+        },
+      },
+    });
+    if (authError) {
+      const message =
+        authError.message === "User already registered"
+          ? "Este email ya está registrado"
+          : authError.message;
       setError(message);
-      throw err;
-    } finally {
-      setIsLoading(false);
+      throw new Error(message);
     }
   }, []);
 
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
+    await supabase.auth.signOut();
     setUser(null);
-    setToken(null);
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
   }, []);
+
+  const clearError = useCallback(() => setError(null), []);
 
   return (
-    <AuthContext.Provider value={{ user, token, isLoading, error, login, register, logout }}>
+    <AuthContext.Provider
+      value={{ user, isLoading, error, login, register, logout, clearError }}
+    >
       {children}
     </AuthContext.Provider>
   );

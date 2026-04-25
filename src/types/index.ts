@@ -3,15 +3,20 @@ export type UserRole = "admin" | "user";
 export interface User {
   id: string;
   name: string;
-  firstName?: string;
-  lastName?: string;
+  email: string;
+  dni: string;
+  role: UserRole;
+  companyCode?: string;
+  createdAt: string;
+  hasCompanyCode: boolean;
+}
+
+export interface RegisterData {
+  name: string;
   email: string;
   dni: string;
   password: string;
-  role: UserRole;
   companyCode?: string;
-  createdAt: Date;
-  hasCompanyCode: boolean;
 }
 
 export interface Match {
@@ -37,7 +42,7 @@ export interface Prize {
   assignmentType: "automatic" | "manual";
   tieResolution: "all" | "draw" | "first";
   phase?: string;
-  createdAt: Date;
+  createdAt: string;
   createdBy?: string;
 }
 
@@ -46,19 +51,19 @@ export interface PrizeAssignment {
   prizeId: string;
   userId: string;
   userName?: string;
-  assignmentDate: Date;
+  assignmentDate: string;
   criteria: string;
   phase?: string;
   assignedBy?: string;
 }
 
-export interface Score {
+export interface RankingEntry {
   userId: string;
   userName: string;
   totalPoints: number;
-  datePoints: number;
-  phasePoints: number;
-  position?: number;
+  exactScores: number;
+  correctWinners: number;
+  position: number;
 }
 
 export interface NotificationMessage {
@@ -69,8 +74,7 @@ export interface NotificationMessage {
 }
 
 export interface CompanyConfig {
-  id: string;
   name: string;
-  updatedAt: Date;
-  updatedBy: string;
+  updatedAt?: string;
+  updatedBy?: string;
 }

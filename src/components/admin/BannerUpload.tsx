@@ -16,31 +16,42 @@ import { useBanner } from "../../hooks/useBanner";
 import { useNotification } from "../../hooks/useNotification";
 
 export const BannerUpload: React.FC = () => {
-  const { bannerUrl, previewUrl, setPreviewUrl, publishBanner } = useBanner();
+  const { bannerUrl, previewUrl, setPreviewUrl, publishBanner, clearBanner } =
+    useBanner();
   const { addNotification } = useNotification();
-  const [urlInput, setUrlInput] = React.useState(previewUrl || bannerUrl || "");
+  const [urlInput, setUrlInput] = React.useState(bannerUrl ?? "");
   const [isLoading, setIsLoading] = React.useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const handleUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const url = e.target.value;
     setUrlInput(url);
-    // Validar si es una URL válida
     try {
       if (url) {
         new URL(url);
         setPreviewUrl(url);
+      } else {
+        setPreviewUrl(null);
       }
     } catch {
-      // No es una URL válida aún
+      // URL parcial, no hacer preview aún
     }
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setIsLoading(true);
     const file = e.target.files?.[0];
     if (!file) return;
 
+    if (!file.type.startsWith("image/")) {
+      addNotification("Solo se permiten archivos de imagen", "error");
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      addNotification("La imagen no puede superar 2MB", "error");
+      return;
+    }
+
+    setIsLoading(true);
     const reader = new FileReader();
     reader.onload = (event) => {
       const base64 = event.target?.result as string;
@@ -56,64 +67,90 @@ export const BannerUpload: React.FC = () => {
     reader.readAsDataURL(file);
   };
 
-  const handlePublish = () => {
+  const handlePublish = async () => {
     if (!urlInput) {
-      addNotification("Ingresa una URL o carga una imagen", "warning");
+      addNotification("Ingresá una URL o cargá una imagen", "warning");
       return;
     }
-    try {
-      new URL(urlInput);
-    } catch {
-      // Si no es URL válida, asumir que es base64
-      if (!urlInput.startsWith("data:image")) {
-        addNotification("URL inválida o imagen no cargada correctamente", "error");
-        return;
+
+    const isValidUrl = (() => {
+      try {
+        new URL(urlInput);
+        return true;
+      } catch {
+        return false;
       }
+    })();
+
+    if (!isValidUrl && !urlInput.startsWith("data:image")) {
+      addNotification("URL inválida o imagen no cargada correctamente", "error");
+      return;
     }
-    publishBanner(urlInput);
-    addNotification("✅ Banner publicado correctamente", "success");
+
+    setIsLoading(true);
+    try {
+      await publishBanner(urlInput);
+      addNotification("Banner publicado correctamente", "success");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Error al publicar";
+      addNotification(message, "error");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleClear = () => {
-    setUrlInput("");
-    setPreviewUrl(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
+  const handleClear = async () => {
+    setIsLoading(true);
+    try {
+      await clearBanner();
+      setUrlInput("");
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      addNotification("Banner eliminado", "success");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Error al limpiar";
+      addNotification(message, "error");
+    } finally {
+      setIsLoading(false);
     }
   };
+
+  const displayUrl = previewUrl ?? bannerUrl;
 
   return (
-    <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", lg: "1fr 1fr" }, gap: 3 }}>
-      {/* Formulario */}
+    <Box
+      sx={{
+        display: "grid",
+        gridTemplateColumns: { xs: "1fr", lg: "1fr 1fr" },
+        gap: 3,
+      }}
+    >
       <Paper sx={{ p: 3 }}>
         <Typography variant="h6" sx={{ mb: 2, fontWeight: "bold" }}>
-          📸 Cargar Banner Promocional
+          Cargar Banner Promocional
         </Typography>
 
         <Stack spacing={3}>
-          {/* Opción 1: URL */}
           <Box>
             <Typography variant="subtitle2" sx={{ mb: 1 }}>
-              Opción 1: URL de Imagen
+              Opción 1: URL de imagen
             </Typography>
             <TextField
               label="URL de la imagen"
               placeholder="https://example.com/banner.jpg"
               fullWidth
-              value={urlInput}
+              value={urlInput.startsWith("data:") ? "" : urlInput}
               onChange={handleUrlChange}
               disabled={isLoading}
-              helperText="Ingresa la URL completa de la imagen"
               type="url"
+              helperText="Ingresá la URL completa"
             />
           </Box>
 
-          <Divider sx={{ my: 1 }}>O</Divider>
+          <Divider>O</Divider>
 
-          {/* Opción 2: Cargar archivo */}
           <Box>
             <Typography variant="subtitle2" sx={{ mb: 1 }}>
-              Opción 2: Cargar Archivo
+              Opción 2: Cargar archivo (máx. 2MB)
             </Typography>
             <input
               ref={fileInputRef}
@@ -123,15 +160,14 @@ export const BannerUpload: React.FC = () => {
               disabled={isLoading}
               style={{ width: "100%" }}
             />
-            {isLoading && <CircularProgress sx={{ mt: 2 }} size={24} />}
           </Box>
 
-          <Alert severity="info">
-            💡 Puedes usar URL de internet O cargar un archivo local. La imagen se
-            convertirá a base64.
-          </Alert>
+          {isLoading && (
+            <Box sx={{ textAlign: "center" }}>
+              <CircularProgress size={24} />
+            </Box>
+          )}
 
-          {/* Botones de acción */}
           <Stack direction="row" spacing={2}>
             <Button
               variant="contained"
@@ -140,37 +176,39 @@ export const BannerUpload: React.FC = () => {
               onClick={handlePublish}
               disabled={!urlInput || isLoading}
             >
-              📤 Publicar Banner
+              Publicar Banner
             </Button>
-            <Button
-              variant="outlined"
-              fullWidth
-              onClick={handleClear}
-              disabled={!urlInput || isLoading}
-            >
-              🗑️ Limpiar
-            </Button>
+            {bannerUrl && (
+              <Button
+                variant="outlined"
+                color="error"
+                fullWidth
+                onClick={handleClear}
+                disabled={isLoading}
+              >
+                Eliminar
+              </Button>
+            )}
           </Stack>
 
           {bannerUrl && (
             <Alert severity="success">
-              ✅ Banner publicado correctamente. Se muestra en todas las páginas.
+              Banner activo visible en todas las páginas.
             </Alert>
           )}
         </Stack>
       </Paper>
 
-      {/* Preview */}
       <Paper sx={{ p: 3, display: "flex", flexDirection: "column" }}>
         <Typography variant="h6" sx={{ mb: 2, fontWeight: "bold" }}>
-          👁️ Previsualización
+          Previsualización
         </Typography>
 
-        {previewUrl || bannerUrl ? (
+        {displayUrl ? (
           <Card sx={{ flexGrow: 1 }}>
             <CardMedia
               component="img"
-              image={previewUrl || bannerUrl || ""}
+              image={displayUrl}
               alt="Banner preview"
               sx={{ width: "100%", height: "300px", objectFit: "cover" }}
             />
@@ -188,26 +226,8 @@ export const BannerUpload: React.FC = () => {
               minHeight: "300px",
             }}
           >
-            <Typography color="textSecondary" textAlign="center">
-              📷 La previsualización aparecerá aquí
-            </Typography>
-          </Box>
-        )}
-
-        {(previewUrl || bannerUrl) && (
-          <Box sx={{ mt: 2 }}>
-            <Typography variant="caption" sx={{ color: "#666", display: "block", mb: 1 }}>
-              {previewUrl === bannerUrl || !previewUrl ? "Banner actual:" : "Vista previa:"}
-            </Typography>
-            <Typography
-              variant="caption"
-              sx={{
-                wordBreak: "break-all",
-                color: "#999",
-                fontSize: "0.7rem",
-              }}
-            >
-              {(previewUrl || bannerUrl)?.substring(0, 100)}...
+            <Typography color="textSecondary">
+              La previsualización aparecerá aquí
             </Typography>
           </Box>
         )}

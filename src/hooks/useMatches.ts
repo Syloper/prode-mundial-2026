@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
+import { supabase } from "../lib/supabase";
 import { Match } from "../types";
 
-// Grupos reales del Mundial 2026
+// Definición de grupos y equipos del Mundial 2026
 const GROUP_DEFINITIONS: Record<string, { teams: string[]; flags: string[] }> = {
   A: { teams: ["México", "Sudáfrica", "Corea del Sur", "Rep. Checa"], flags: ["🇲🇽", "🇿🇦", "🇰🇷", "🇨🇿"] },
   B: { teams: ["Canadá", "Bosnia y Herz.", "Qatar", "Suiza"], flags: ["🇨🇦", "🇧🇦", "🇶🇦", "🇨🇭"] },
@@ -17,90 +18,169 @@ const GROUP_DEFINITIONS: Record<string, { teams: string[]; flags: string[] }> = 
   L: { teams: ["Inglaterra", "Croacia", "Ghana", "Panamá"], flags: ["🏴󠁧󠁢󠁥󠁮󠁧󠁿", "🇭🇷", "🇬🇭", "🇵🇦"] },
 };
 
-// Pares de rondas en un grupo de 4 equipos
-const ROUND_PAIRS = [[0, 1], [2, 3], [0, 2], [1, 3], [0, 3], [1, 2]];
+const ROUND_PAIRS = [[0, 1], [2, 3], [0, 2], [1, 3], [0, 3], [1, 2]] as const;
 
-function buildMatches(): Match[] {
-  const matches: Match[] = [];
+export function buildMatchesForSeed(): Array<{
+  id: number;
+  home_team: string;
+  away_team: string;
+  home_team_flag: string;
+  away_team_flag: string;
+  group_name: string;
+  scheduled_date: string;
+  result_deadline: string;
+}> {
+  const result = [];
   let id = 1;
   const groupKeys = Object.keys(GROUP_DEFINITIONS);
-  // Jornadas: 11 jun, 15 jun, 22 jun 2026 por grupo
-  const roundOffsets = [0, 4, 11]; // días desde inicio por jornada
+  const roundOffsets = [0, 4, 11];
 
   groupKeys.forEach((group, groupIdx) => {
     const { teams, flags } = GROUP_DEFINITIONS[group];
     ROUND_PAIRS.forEach(([i, j], pairIdx) => {
-      const round = Math.floor(pairIdx / 2); // 0,1,2
-      const dayOffset = roundOffsets[round] + groupIdx * 0.5; // escalonar grupos
-      const baseDate = new Date("2026-06-11T18:00:00");
+      const round = Math.floor(pairIdx / 2);
+      const dayOffset = roundOffsets[round] + groupIdx * 0.5;
+      const baseDate = new Date("2026-06-11T21:00:00Z");
       baseDate.setDate(baseDate.getDate() + Math.floor(dayOffset));
-      baseDate.setHours(18 + (groupIdx % 3) * 2, 0, 0, 0); // distintos horarios
+      const hourUtc = 21 + (groupIdx % 3) * 2;
+      baseDate.setUTCHours(hourUtc, 0, 0, 0);
 
       const scheduledDate = new Date(baseDate);
       const resultDeadline = new Date(scheduledDate.getTime() - 24 * 60 * 60 * 1000);
 
-      // Primeros 12 partidos son pasados con resultados (para demo)
-      const isPast = id <= 12;
-      const isFinished = isPast;
-
-      matches.push({
-        id: String(id++),
-        homeTeam: teams[i],
-        awayTeam: teams[j],
-        homeTeamFlag: flags[i],
-        awayTeamFlag: flags[j],
-        group,
-        scheduledDate: isPast ? new Date(new Date().getTime() - (13 - id) * 86400000) : scheduledDate,
-        resultDeadline: isPast
-          ? new Date(new Date().getTime() - (14 - id) * 86400000)
-          : resultDeadline,
-        isFinished,
-        homeScore: isFinished ? Math.floor(Math.random() * 4) : undefined,
-        awayScore: isFinished ? Math.floor(Math.random() * 3) : undefined,
+      result.push({
+        id: id++,
+        home_team: teams[i],
+        away_team: teams[j],
+        home_team_flag: flags[i],
+        away_team_flag: flags[j],
+        group_name: group,
+        scheduled_date: scheduledDate.toISOString(),
+        result_deadline: resultDeadline.toISOString(),
       });
     });
   });
 
-  return matches;
+  return result;
 }
 
-const STORAGE_KEY = "mockMatchResults";
+function mapDbMatch(row: {
+  id: number;
+  home_team: string;
+  away_team: string;
+  home_team_flag: string;
+  away_team_flag: string;
+  group_name: string;
+  scheduled_date: string;
+  result_deadline: string;
+  home_score: number | null;
+  away_score: number | null;
+  is_finished: boolean;
+}): Match {
+  return {
+    id: String(row.id),
+    homeTeam: row.home_team,
+    awayTeam: row.away_team,
+    homeTeamFlag: row.home_team_flag,
+    awayTeamFlag: row.away_team_flag,
+    group: row.group_name,
+    scheduledDate: new Date(row.scheduled_date),
+    resultDeadline: new Date(row.result_deadline),
+    homeScore: row.home_score ?? undefined,
+    awayScore: row.away_score ?? undefined,
+    isFinished: row.is_finished,
+  };
+}
 
 export const useMatches = () => {
   const [matches, setMatches] = useState<Match[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSeeding, setIsSeeding] = useState(false);
+
+  const fetchMatches = useCallback(async () => {
+    const { data, error } = await supabase
+      .from("matches")
+      .select("*")
+      .order("scheduled_date");
+
+    if (error) {
+      console.error("Error al cargar partidos:", error.message);
+      return;
+    }
+    setMatches((data ?? []).map(mapDbMatch));
+  }, []);
 
   useEffect(() => {
-    const base = buildMatches();
-    // Aplicar resultados guardados
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      const overrides: Record<string, { homeScore: number; awayScore: number }> = JSON.parse(saved);
-      const updated = base.map(m =>
-        overrides[m.id]
-          ? { ...m, homeScore: overrides[m.id].homeScore, awayScore: overrides[m.id].awayScore, isFinished: true }
-          : m
-      );
-      setMatches(updated);
-    } else {
-      setMatches(base);
-    }
-    setIsLoading(false);
-  }, []);
+    const load = async () => {
+      setIsLoading(true);
+      await fetchMatches();
+      setIsLoading(false);
+    };
+    load();
 
-  const updateMatchResult = useCallback((matchId: string, homeScore: number, awayScore: number) => {
-    setMatches(prev => {
-      const updated = prev.map(m =>
-        m.id === matchId ? { ...m, homeScore, awayScore, isFinished: true } : m
-      );
-      // Persistir solo los overrides
-      const saved = localStorage.getItem(STORAGE_KEY);
-      const overrides = saved ? JSON.parse(saved) : {};
-      overrides[matchId] = { homeScore, awayScore };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(overrides));
-      return updated;
-    });
-  }, []);
+    // Suscripción en tiempo real: cuando el admin carga resultados, todos ven la actualización
+    const channel = supabase
+      .channel("matches-realtime")
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "matches" },
+        (payload) => {
+          setMatches((prev) =>
+            prev.map((m) =>
+              m.id === String(payload.new.id)
+                ? {
+                    ...m,
+                    homeScore: payload.new.home_score ?? undefined,
+                    awayScore: payload.new.away_score ?? undefined,
+                    isFinished: payload.new.is_finished,
+                  }
+                : m
+            )
+          );
+        }
+      )
+      .subscribe();
 
-  return { matches, isLoading, updateMatchResult };
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [fetchMatches]);
+
+  const updateMatchResult = useCallback(
+    async (matchId: string, homeScore: number, awayScore: number) => {
+      const { error } = await supabase
+        .from("matches")
+        .update({ home_score: homeScore, away_score: awayScore, is_finished: true })
+        .eq("id", parseInt(matchId));
+
+      if (error) throw new Error("Error al guardar el resultado");
+
+      setMatches((prev) =>
+        prev.map((m) =>
+          m.id === matchId ? { ...m, homeScore, awayScore, isFinished: true } : m
+        )
+      );
+    },
+    []
+  );
+
+  // Función para sembrar partidos si la tabla está vacía (solo admins)
+  const seedMatchesIfEmpty = useCallback(async () => {
+    const { count } = await supabase
+      .from("matches")
+      .select("id", { count: "exact", head: true });
+
+    if (count && count > 0) return false;
+
+    setIsSeeding(true);
+    const matchRows = buildMatchesForSeed();
+    const { error } = await supabase.from("matches").insert(matchRows);
+    setIsSeeding(false);
+
+    if (error) throw new Error("Error al sembrar partidos: " + error.message);
+    await fetchMatches();
+    return true;
+  }, [fetchMatches]);
+
+  return { matches, isLoading, isSeeding, updateMatchResult, seedMatchesIfEmpty, refetch: fetchMatches };
 };

@@ -9,35 +9,60 @@ export const Navbar: React.FC = () => {
   const { company } = useCompany();
   const navigate = useNavigate();
 
+  const handleLogout = async () => {
+    await logout();
+    navigate("/login");
+  };
+
   return (
     <AppBar position="sticky">
       <Toolbar>
         <Box sx={{ flexGrow: 1, cursor: "pointer" }} onClick={() => navigate("/")}>
           <Typography variant="h6" component="span">
-            ⚽ PRODE 2026
+            PRODE 2026
           </Typography>
           {company?.name && (
-            <Typography variant="subtitle2" component="span" sx={{ ml: 1, opacity: 0.85 }}>
+            <Typography
+              variant="subtitle2"
+              component="span"
+              sx={{ ml: 1, opacity: 0.85 }}
+            >
               — {company.name}
             </Typography>
           )}
         </Box>
+
         {user && (
           <Typography variant="caption" sx={{ mr: 2, opacity: 0.85 }}>
-            👤 {(user as any).firstName} {(user as any).lastName}
+            {user.name}
           </Typography>
         )}
+
         {user ? (
           <Box sx={{ display: "flex", gap: 1 }}>
-            <Button color="inherit" component={RouterLink} to="/">Grupos</Button>
-            <Button color="inherit" component={RouterLink} to="/podium">Podio</Button>
-            {user.role === "admin" && <Button color="inherit" component={RouterLink} to="/admin">Admin</Button>}
-            <Button color="inherit" onClick={() => { logout(); navigate("/login"); }}>Logout</Button>
+            <Button color="inherit" component={RouterLink} to="/">
+              Grupos
+            </Button>
+            <Button color="inherit" component={RouterLink} to="/podium">
+              Ranking
+            </Button>
+            {user.role === "admin" && (
+              <Button color="inherit" component={RouterLink} to="/admin">
+                Admin
+              </Button>
+            )}
+            <Button color="inherit" onClick={handleLogout}>
+              Salir
+            </Button>
           </Box>
         ) : (
           <Box sx={{ display: "flex", gap: 1 }}>
-            <Button color="inherit" component={RouterLink} to="/login">Login</Button>
-            <Button color="inherit" component={RouterLink} to="/register">Registro</Button>
+            <Button color="inherit" component={RouterLink} to="/login">
+              Login
+            </Button>
+            <Button color="inherit" component={RouterLink} to="/register">
+              Registro
+            </Button>
           </Box>
         )}
       </Toolbar>

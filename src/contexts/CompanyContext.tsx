@@ -1,27 +1,53 @@
 import React, { createContext, useState, useCallback, useEffect } from "react";
+import { supabase } from "../lib/supabase";
 import { CompanyConfig } from "../types";
 
 interface CompanyContextType {
   company: CompanyConfig | null;
-  updateCompany: (config: CompanyConfig) => void;
+  updateCompany: (name: string) => Promise<void>;
 }
 
-export const CompanyContext = createContext<CompanyContextType | undefined>(undefined);
+export const CompanyContext = createContext<CompanyContextType | undefined>(
+  undefined
+);
 
-export const CompanyProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const CompanyProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
   const [company, setCompany] = useState<CompanyConfig | null>(null);
 
-  // Cargar desde localStorage
   useEffect(() => {
-    const saved = localStorage.getItem("mockCompanyConfig");
-    if (saved) {
-      setCompany(JSON.parse(saved));
-    }
+    supabase
+      .from("app_config")
+      .select("value, updated_at, updated_by")
+      .eq("key", "company_name")
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data?.value) {
+          setCompany({
+            name: data.value,
+            updatedAt: data.updated_at ?? undefined,
+            updatedBy: data.updated_by ?? undefined,
+          });
+        }
+      });
   }, []);
 
-  const updateCompany = useCallback((config: CompanyConfig) => {
-    setCompany(config);
-    localStorage.setItem("mockCompanyConfig", JSON.stringify(config));
+  const updateCompany = useCallback(async (name: string) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    const now = new Date().toISOString();
+    const { error } = await supabase.from("app_config").upsert({
+      key: "company_name",
+      value: name,
+      updated_at: now,
+      updated_by: session?.user.id ?? null,
+    });
+    if (error) throw new Error("Error al actualizar la empresa");
+    setCompany({
+      name,
+      updatedAt: now,
+      updatedBy: session?.user.id ?? undefined,
+    });
   }, []);
 
   return (

@@ -1,91 +1,160 @@
 import React, { createContext, useState, useCallback, useEffect } from "react";
+import { supabase } from "../lib/supabase";
 
 export interface UserPrediction {
   matchId: string;
   homeScore: number;
   awayScore: number;
-  loadedAt: number;
+  createdAt: string;
   userId: string;
 }
 
 interface PredictionContextType {
   predictions: Record<string, UserPrediction>;
-  savePrediction: (matchId: string, homeScore: number, awayScore: number, userId: string) => void;
+  isLoading: boolean;
+  savePrediction: (
+    matchId: string,
+    homeScore: number,
+    awayScore: number,
+    userId: string
+  ) => Promise<void>;
   getPrediction: (matchId: string, userId: string) => UserPrediction | null;
-  canPredict: (matchDate: Date) => boolean;
-  isPredictionLocked: (matchDate: Date, matchId: string, userId: string) => boolean;
+  canPredict: (deadlineDate: Date) => boolean;
+  isPredictionLocked: (
+    deadlineDate: Date,
+    matchId: string,
+    userId: string
+  ) => boolean;
 }
 
-export const PredictionContext = createContext<PredictionContextType | undefined>(undefined);
+export const PredictionContext = createContext<PredictionContextType | undefined>(
+  undefined
+);
 
-export const PredictionProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [predictions, setPredictions] = useState<Record<string, UserPrediction>>({});
+export const PredictionProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
+  const [predictions, setPredictions] = useState<Record<string, UserPrediction>>(
+    {}
+  );
+  const [isLoading, setIsLoading] = useState(false);
 
-  // Load from localStorage
+  // Carga predicciones del usuario autenticado al cambiar sesión
   useEffect(() => {
-    const saved = localStorage.getItem("mockPredictions");
-    if (saved) {
-      setPredictions(JSON.parse(saved));
-    }
+    const loadForUser = async (userId: string) => {
+      setIsLoading(true);
+      const { data, error } = await supabase
+        .from("predictions")
+        .select("*")
+        .eq("user_id", userId);
+
+      if (!error && data) {
+        const map: Record<string, UserPrediction> = {};
+        data.forEach((p) => {
+          const key = `${p.user_id}-${p.match_id}`;
+          map[key] = {
+            matchId: String(p.match_id),
+            homeScore: p.home_score,
+            awayScore: p.away_score,
+            createdAt: p.created_at,
+            userId: p.user_id,
+          };
+        });
+        setPredictions(map);
+      }
+      setIsLoading(false);
+    };
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) loadForUser(session.user.id);
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session) {
+        loadForUser(session.user.id);
+      } else {
+        setPredictions({});
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
-  // Guardar predicción (solo una vez)
   const savePrediction = useCallback(
-    (matchId: string, homeScore: number, awayScore: number, userId: string) => {
+    async (
+      matchId: string,
+      homeScore: number,
+      awayScore: number,
+      userId: string
+    ) => {
       const key = `${userId}-${matchId}`;
-      
-      // Si ya existe predicción, no permitir cambio
-      if (predictions[key]) {
-        console.log("Predicción ya existe para este partido");
-        return;
+      if (predictions[key]) return;
+
+      const { data, error } = await supabase
+        .from("predictions")
+        .insert({
+          match_id: parseInt(matchId),
+          user_id: userId,
+          home_score: homeScore,
+          away_score: awayScore,
+        })
+        .select()
+        .single();
+
+      if (error) {
+        if (error.code === "23505") throw new Error("Ya tenés una predicción para este partido");
+        throw new Error("Error al guardar la predicción");
       }
 
-      const newPrediction: UserPrediction = {
-        matchId,
-        homeScore,
-        awayScore,
-        loadedAt: Date.now(),
-        userId,
-      };
-
-      const updated = { ...predictions, [key]: newPrediction };
-      setPredictions(updated);
-      localStorage.setItem("mockPredictions", JSON.stringify(updated));
+      if (data) {
+        setPredictions((prev) => ({
+          ...prev,
+          [key]: {
+            matchId,
+            homeScore,
+            awayScore,
+            createdAt: data.created_at,
+            userId,
+          },
+        }));
+      }
     },
     [predictions]
   );
 
-  // Obtener predicción de un usuario para un partido
   const getPrediction = useCallback(
-    (matchId: string, userId: string) => {
-      const key = `${userId}-${matchId}`;
-      return predictions[key] || null;
+    (matchId: string, userId: string): UserPrediction | null => {
+      return predictions[`${userId}-${matchId}`] ?? null;
     },
     [predictions]
   );
 
-  // Verificar si se puede predecir (24 horas antes del partido)
-  const canPredict = useCallback((matchDate: Date) => {
-    const now = new Date();
-    const hoursUntil = (new Date(matchDate).getTime() - now.getTime()) / (1000 * 60 * 60);
-    return hoursUntil > 24;
+  const canPredict = useCallback((deadlineDate: Date): boolean => {
+    return new Date(deadlineDate) > new Date();
   }, []);
 
-  // Verificar si la predicción está bloqueada
   const isPredictionLocked = useCallback(
-    (matchDate: Date, matchId: string, userId: string) => {
-      const prediction = getPrediction(matchId, userId);
-      const now = new Date();
-      const hoursUntil = (new Date(matchDate).getTime() - now.getTime()) / (1000 * 60 * 60);
-
-      // Bloqueado si: ya tiene predicción O pasaron las 24 horas
-      return !!prediction || hoursUntil <= 24;
+    (deadlineDate: Date, matchId: string, userId: string): boolean => {
+      const hasPrediction = !!predictions[`${userId}-${matchId}`];
+      const pastDeadline = new Date(deadlineDate) <= new Date();
+      return hasPrediction || pastDeadline;
     },
-    [getPrediction]
+    [predictions]
   );
 
   return (
-    <PredictionContext.Provider value={{ predictions, savePrediction, getPrediction, canPredict, isPredictionLocked }}>
+    <PredictionContext.Provider
+      value={{
+        predictions,
+        isLoading,
+        savePrediction,
+        getPrediction,
+        canPredict,
+        isPredictionLocked,
+      }}
+    >
       {children}
     </PredictionContext.Provider>
   );

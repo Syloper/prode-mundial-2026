@@ -1,38 +1,63 @@
 import React, { createContext, useState, useCallback, useEffect } from "react";
+import { supabase } from "../lib/supabase";
 
 interface BannerContextType {
   bannerUrl: string | null;
-  setBannerUrl: (url: string | null) => void;
   previewUrl: string | null;
   setPreviewUrl: (url: string | null) => void;
-  publishBanner: (url: string) => void;
+  publishBanner: (url: string) => Promise<void>;
+  clearBanner: () => Promise<void>;
 }
 
-export const BannerContext = createContext<BannerContextType | undefined>(undefined);
+export const BannerContext = createContext<BannerContextType | undefined>(
+  undefined
+);
 
-export const BannerProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [bannerUrl, setBannerUrlState] = useState<string | null>(null);
+export const BannerProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
+  const [bannerUrl, setBannerUrl] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
-  // Load from localStorage on mount
   useEffect(() => {
-    const saved = localStorage.getItem("mockBanner");
-    if (saved) {
-      setBannerUrlState(saved);
-    }
+    supabase
+      .from("app_config")
+      .select("value")
+      .eq("key", "banner_url")
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data?.value) setBannerUrl(data.value);
+      });
   }, []);
 
-  const setBannerUrl = useCallback((url: string | null) => {
-    setBannerUrlState(url);
+  const publishBanner = useCallback(async (url: string) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    const { error } = await supabase.from("app_config").upsert({
+      key: "banner_url",
+      value: url,
+      updated_at: new Date().toISOString(),
+      updated_by: session?.user.id ?? null,
+    });
+    if (error) throw new Error("Error al publicar el banner");
+    setBannerUrl(url);
+    setPreviewUrl(null);
   }, []);
 
-  const publishBanner = useCallback((url: string) => {
-    setBannerUrlState(url);
-    localStorage.setItem("mockBanner", url);
+  const clearBanner = useCallback(async () => {
+    const { error } = await supabase.from("app_config").upsert({
+      key: "banner_url",
+      value: null,
+      updated_at: new Date().toISOString(),
+    });
+    if (error) throw new Error("Error al limpiar el banner");
+    setBannerUrl(null);
+    setPreviewUrl(null);
   }, []);
 
   return (
-    <BannerContext.Provider value={{ bannerUrl, setBannerUrl, previewUrl, setPreviewUrl, publishBanner }}>
+    <BannerContext.Provider
+      value={{ bannerUrl, previewUrl, setPreviewUrl, publishBanner, clearBanner }}
+    >
       {children}
     </BannerContext.Provider>
   );

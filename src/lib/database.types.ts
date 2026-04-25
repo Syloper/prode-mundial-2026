@@ -1,0 +1,168 @@
+export interface Database {
+  public: {
+    Tables: {
+      profiles: {
+        Row: {
+          id: string;
+          name: string;
+          dni: string;
+          role: "admin" | "user";
+          company_code: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id: string;
+          name: string;
+          dni: string;
+          role?: "admin" | "user";
+          company_code?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          name?: string;
+          dni?: string;
+          role?: "admin" | "user";
+          company_code?: string | null;
+        };
+      };
+      matches: {
+        Row: {
+          id: number;
+          home_team: string;
+          away_team: string;
+          home_team_flag: string;
+          away_team_flag: string;
+          group_name: string;
+          scheduled_date: string;
+          result_deadline: string;
+          home_score: number | null;
+          away_score: number | null;
+          is_finished: boolean;
+        };
+        Insert: {
+          id: number;
+          home_team: string;
+          away_team: string;
+          home_team_flag: string;
+          away_team_flag: string;
+          group_name: string;
+          scheduled_date: string;
+          result_deadline: string;
+          home_score?: number | null;
+          away_score?: number | null;
+          is_finished?: boolean;
+        };
+        Update: {
+          home_score?: number | null;
+          away_score?: number | null;
+          is_finished?: boolean;
+        };
+      };
+      predictions: {
+        Row: {
+          id: string;
+          match_id: number;
+          user_id: string;
+          home_score: number;
+          away_score: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          match_id: number;
+          user_id: string;
+          home_score: number;
+          away_score: number;
+          created_at?: string;
+        };
+        Update: never;
+      };
+      prizes: {
+        Row: {
+          id: string;
+          name: string;
+          description: string;
+          photo_url: string | null;
+          criteria: "most_points_date" | "most_points_phase" | "most_points_tournament";
+          assignment_type: "automatic" | "manual";
+          tie_resolution: "all" | "draw" | "first";
+          phase: string | null;
+          created_at: string;
+          created_by: string | null;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          description: string;
+          photo_url?: string | null;
+          criteria: "most_points_date" | "most_points_phase" | "most_points_tournament";
+          assignment_type: "automatic" | "manual";
+          tie_resolution?: "all" | "draw" | "first";
+          phase?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["prizes"]["Insert"]>;
+      };
+      prize_assignments: {
+        Row: {
+          id: string;
+          prize_id: string;
+          user_id: string;
+          user_name: string | null;
+          assignment_date: string;
+          criteria: string;
+          phase: string | null;
+          assigned_by: string | null;
+        };
+        Insert: {
+          id?: string;
+          prize_id: string;
+          user_id: string;
+          user_name?: string | null;
+          assignment_date?: string;
+          criteria: string;
+          phase?: string | null;
+          assigned_by?: string | null;
+        };
+        Update: never;
+      };
+      app_config: {
+        Row: {
+          key: string;
+          value: string | null;
+          updated_at: string;
+          updated_by: string | null;
+        };
+        Insert: {
+          key: string;
+          value?: string | null;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Update: {
+          value?: string | null;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+      };
+    };
+    Functions: {
+      get_rankings: {
+        Returns: Array<{
+          user_id: string;
+          user_name: string;
+          total_points: number;
+          exact_scores: number;
+          correct_winners: number;
+        }>;
+      };
+      is_admin: {
+        Returns: boolean;
+      };
+      seed_matches: {
+        Returns: void;
+      };
+    };
+  };
+}

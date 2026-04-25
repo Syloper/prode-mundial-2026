@@ -16,41 +16,81 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  CircularProgress,
+  Alert,
 } from "@mui/material";
+import { supabase } from "../../lib/supabase";
+
+interface ProfileRow {
+  id: string;
+  name: string;
+  dni: string;
+  role: "admin" | "user";
+  company_code: string | null;
+  created_at: string;
+  email?: string;
+}
 
 export const UsersDashboard: React.FC = () => {
-  const [users, setUsers] = useState<any[]>([]);
+  const [users, setUsers] = useState<ProfileRow[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [filterCompany, setFilterCompany] = useState("all");
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
 
   useEffect(() => {
-    const stored = localStorage.getItem("mockUsers");
-    if (stored) setUsers(JSON.parse(stored));
+    const load = async () => {
+      setIsLoading(true);
+      const { data, error: err } = await supabase
+        .from("profiles")
+        .select("*")
+        .order("created_at");
+
+      if (err) {
+        setError("Error al cargar usuarios");
+      } else {
+        setUsers(data ?? []);
+      }
+      setIsLoading(false);
+    };
+    load();
   }, []);
 
   const filtered = users.filter((u) => {
+    const term = search.toLowerCase();
     const matchSearch =
       !search ||
-      u.name?.toLowerCase().includes(search.toLowerCase()) ||
-      u.dni?.toLowerCase().includes(search.toLowerCase()) ||
-      u.email?.toLowerCase().includes(search.toLowerCase());
+      u.name.toLowerCase().includes(term) ||
+      u.dni.toLowerCase().includes(term);
     const matchCompany =
       filterCompany === "all" ||
-      (filterCompany === "yes" && u.hasCompanyCode) ||
-      (filterCompany === "no" && !u.hasCompanyCode);
+      (filterCompany === "yes" && !!u.company_code) ||
+      (filterCompany === "no" && !u.company_code);
     return matchSearch && matchCompany;
   });
+
+  if (isLoading) {
+    return (
+      <Box sx={{ textAlign: "center", py: 4 }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (error) {
+    return <Alert severity="error">{error}</Alert>;
+  }
 
   return (
     <Box>
       <Typography variant="h6" sx={{ mb: 2, fontWeight: "bold" }}>
-        👥 Usuarios Registrados
+        Usuarios Registrados
       </Typography>
       <Box sx={{ display: "flex", gap: 2, mb: 3, flexWrap: "wrap" }}>
         <TextField
-          label="Buscar por nombre, DNI o email"
+          label="Buscar por nombre o DNI"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           size="small"
@@ -75,40 +115,46 @@ export const UsersDashboard: React.FC = () => {
             <TableRow sx={{ backgroundColor: "#f5f5f5" }}>
               <TableCell><strong>Nombre</strong></TableCell>
               <TableCell><strong>DNI</strong></TableCell>
-              <TableCell><strong>Email</strong></TableCell>
               <TableCell><strong>Rol</strong></TableCell>
               <TableCell><strong>Empresa</strong></TableCell>
               <TableCell><strong>Registrado</strong></TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
-            {filtered.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((u) => (
-              <TableRow key={u.id} hover>
-                <TableCell>{u.name || `${u.firstName} ${u.lastName}`}</TableCell>
-                <TableCell>{u.dni || "-"}</TableCell>
-                <TableCell>{u.email}</TableCell>
-                <TableCell>
-                  <Chip
-                    label={u.role === "admin" ? "Admin" : "Usuario"}
-                    color={u.role === "admin" ? "secondary" : "default"}
-                    size="small"
-                  />
-                </TableCell>
-                <TableCell>
-                  {u.hasCompanyCode ? (
-                    <Chip label={u.companyCode || "Sí"} color="success" size="small" />
-                  ) : (
-                    <Chip label="No" variant="outlined" size="small" />
-                  )}
-                </TableCell>
-                <TableCell>
-                  {u.createdAt ? new Date(u.createdAt).toLocaleDateString() : "-"}
-                </TableCell>
-              </TableRow>
-            ))}
+            {filtered
+              .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+              .map((u) => (
+                <TableRow key={u.id} hover>
+                  <TableCell>{u.name}</TableCell>
+                  <TableCell>{u.dni || "-"}</TableCell>
+                  <TableCell>
+                    <Chip
+                      label={u.role === "admin" ? "Admin" : "Usuario"}
+                      color={u.role === "admin" ? "secondary" : "default"}
+                      size="small"
+                    />
+                  </TableCell>
+                  <TableCell>
+                    {u.company_code ? (
+                      <Chip
+                        label={u.company_code}
+                        color="success"
+                        size="small"
+                      />
+                    ) : (
+                      <Chip label="Sin código" variant="outlined" size="small" />
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {new Date(u.created_at).toLocaleDateString("es-AR")}
+                  </TableCell>
+                </TableRow>
+              ))}
             {filtered.length === 0 && (
               <TableRow>
-                <TableCell colSpan={6} align="center">No se encontraron usuarios</TableCell>
+                <TableCell colSpan={5} align="center">
+                  No se encontraron usuarios
+                </TableCell>
               </TableRow>
             )}
           </TableBody>
@@ -120,7 +166,10 @@ export const UsersDashboard: React.FC = () => {
         page={page}
         onPageChange={(_, p) => setPage(p)}
         rowsPerPage={rowsPerPage}
-        onRowsPerPageChange={(e) => setRowsPerPage(parseInt(e.target.value))}
+        onRowsPerPageChange={(e) => {
+          setRowsPerPage(parseInt(e.target.value));
+          setPage(0);
+        }}
         rowsPerPageOptions={[5, 10, 25]}
         labelRowsPerPage="Filas:"
       />

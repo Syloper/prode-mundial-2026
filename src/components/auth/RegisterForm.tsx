@@ -1,32 +1,99 @@
 import React from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { TextField, Button, Box, Alert } from "@mui/material";
-import { registerSchema } from "../../utils/validators";
+import { TextField, Button, Box, Alert, Typography } from "@mui/material";
+import { registerSchema, RegisterFormData } from "../../utils/validators";
 import { useAuth } from "../../hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 
 export const RegisterForm: React.FC = () => {
-  const { register, handleSubmit, formState: { errors } } = useForm({ resolver: zodResolver(registerSchema) });
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<RegisterFormData>({ resolver: zodResolver(registerSchema) });
   const { register: registerUser, isLoading, error } = useAuth();
   const navigate = useNavigate();
 
-  const onSubmit = async (data: any) => {
+  const onSubmit = async (data: RegisterFormData) => {
     try {
-      await registerUser(data);
+      await registerUser({
+        name: data.name,
+        email: data.email,
+        dni: data.dni,
+        password: data.password,
+        companyCode: data.companyCode,
+      });
       navigate("/");
-    } catch (err) {}
+    } catch {
+      // El error ya está en el contexto de auth
+    }
   };
 
   return (
     <Box component="form" onSubmit={handleSubmit(onSubmit)} sx={{ width: "100%" }}>
-      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-      <TextField {...register("name")} label="Nombre" fullWidth margin="normal" error={!!errors.name} helperText={errors.name?.message as string} />
-      <TextField {...register("email")} label="Email" type="email" fullWidth margin="normal" error={!!errors.email} helperText={errors.email?.message as string} />
-      <TextField {...register("dni")} label="DNI" fullWidth margin="normal" error={!!errors.dni} helperText={errors.dni?.message as string} />
-      <TextField {...register("password")} label="Contraseña" type="password" fullWidth margin="normal" error={!!errors.password} helperText={errors.password?.message as string} />
-      <TextField {...register("companyCode")} label="Codigo Empresa (Opcional)" fullWidth margin="normal" />
-      <Button type="submit" fullWidth variant="contained" sx={{ mt: 2 }} disabled={isLoading}>Registrarse</Button>
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+      )}
+      <TextField
+        {...register("name")}
+        label="Nombre completo"
+        fullWidth
+        margin="normal"
+        autoComplete="name"
+        error={!!errors.name}
+        helperText={errors.name?.message}
+      />
+      <TextField
+        {...register("email")}
+        label="Email"
+        type="email"
+        fullWidth
+        margin="normal"
+        autoComplete="email"
+        error={!!errors.email}
+        helperText={errors.email?.message}
+      />
+      <TextField
+        {...register("dni")}
+        label="DNI (solo números)"
+        fullWidth
+        margin="normal"
+        inputProps={{ inputMode: "numeric" }}
+        error={!!errors.dni}
+        helperText={errors.dni?.message}
+      />
+      <TextField
+        {...register("password")}
+        label="Contraseña"
+        type="password"
+        fullWidth
+        margin="normal"
+        autoComplete="new-password"
+        error={!!errors.password}
+        helperText={errors.password?.message}
+      />
+      <TextField
+        {...register("companyCode")}
+        label="Código empresa (opcional)"
+        fullWidth
+        margin="normal"
+        helperText={errors.companyCode?.message}
+      />
+      <Typography variant="caption" sx={{ color: "#666", display: "block", mt: 1 }}>
+        La contraseña debe tener al menos 8 caracteres, una mayúscula y un número.
+      </Typography>
+      <Button
+        type="submit"
+        fullWidth
+        variant="contained"
+        sx={{ mt: 2 }}
+        disabled={isLoading}
+      >
+        {isLoading ? "Registrando..." : "Registrarse"}
+      </Button>
     </Box>
   );
 };
