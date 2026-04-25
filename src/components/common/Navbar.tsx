@@ -16,51 +16,82 @@ export const Navbar: React.FC = () => {
 
   return (
     <AppBar position="sticky">
-      <Toolbar>
-        <Box sx={{ flexGrow: 1, cursor: "pointer" }} onClick={() => navigate("/")}>
-          <Typography variant="h6" component="span">
-            PRODE 2026
-          </Typography>
-          {company?.name && (
-            <Typography
-              variant="subtitle2"
-              component="span"
-              sx={{ ml: 1, opacity: 0.85 }}
-            >
-              — {company.name}
+      <Toolbar sx={{ gap: 1 }}>
+        {/* Logo + nombre */}
+        <Box
+          sx={{ flexGrow: 1, display: "flex", alignItems: "center", gap: 1.5, cursor: "pointer" }}
+          onClick={() => navigate("/")}
+        >
+          <Box
+            component="img"
+            src="https://syloper.com/wp-content/uploads/logo-colores.svg"
+            alt="Syloper"
+            sx={{ height: 24 }}
+            onError={(e: React.SyntheticEvent<HTMLImageElement>) => {
+              e.currentTarget.style.display = "none";
+            }}
+          />
+          <Box sx={{ display: "flex", flexDirection: "column", lineHeight: 1 }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 700, lineHeight: 1.1 }}>
+              PRODE 2026
             </Typography>
-          )}
+            {company?.name && (
+              <Typography variant="caption" sx={{ opacity: 0.75, lineHeight: 1.1 }}>
+                {company.name}
+              </Typography>
+            )}
+          </Box>
         </Box>
 
+        {/* Usuario actual */}
         {user && (
-          <Typography variant="caption" sx={{ mr: 2, opacity: 0.85 }}>
+          <Typography
+            variant="caption"
+            sx={{ mr: 1, opacity: 0.8, display: { xs: "none", sm: "block" } }}
+          >
             {user.name}
           </Typography>
         )}
 
+        {/* Navegación */}
         {user ? (
-          <Box sx={{ display: "flex", gap: 1 }}>
-            <Button color="inherit" component={RouterLink} to="/">
+          <Box sx={{ display: "flex", gap: 0.5 }}>
+            <Button color="inherit" component={RouterLink} to="/" size="small">
               Grupos
             </Button>
-            <Button color="inherit" component={RouterLink} to="/podium">
+            <Button color="inherit" component={RouterLink} to="/podium" size="small">
               Ranking
             </Button>
             {user.role === "admin" && (
-              <Button color="inherit" component={RouterLink} to="/admin">
+              <Button color="inherit" component={RouterLink} to="/admin" size="small">
                 Admin
               </Button>
             )}
-            <Button color="inherit" onClick={handleLogout}>
+            <Button
+              color="inherit"
+              onClick={handleLogout}
+              size="small"
+              sx={{ opacity: 0.8, "&:hover": { opacity: 1 } }}
+            >
               Salir
             </Button>
           </Box>
         ) : (
-          <Box sx={{ display: "flex", gap: 1 }}>
-            <Button color="inherit" component={RouterLink} to="/login">
+          <Box sx={{ display: "flex", gap: 0.5 }}>
+            <Button color="inherit" component={RouterLink} to="/login" size="small">
               Login
             </Button>
-            <Button color="inherit" component={RouterLink} to="/register">
+            <Button
+              variant="outlined"
+              component={RouterLink}
+              to="/register"
+              size="small"
+              sx={{
+                borderColor: "#00B96B",
+                color: "#00B96B",
+                "&:hover": { backgroundColor: "rgba(0,185,107,0.1)" },
+              }}
+            >
               Registro
             </Button>
           </Box>

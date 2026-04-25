@@ -20,7 +20,7 @@ import { supabase } from "../lib/supabase";
 import { RankingEntry } from "../types";
 import { useAuth } from "../hooks/useAuth";
 
-const PODIUM_COLORS = ["#FFF9C4", "#E8E8E8", "#FFCC80"] as const;
+const PODIUM_COLORS = ["#E6F9F1", "#F0F3F4", "#FFF3E0"] as const;
 const PODIUM_MEDALS = ["🥇", "🥈", "🥉"] as const;
 
 export const PodiumPage: React.FC = () => {
@@ -127,7 +127,7 @@ export const PodiumPage: React.FC = () => {
               maxWidth: 250,
               textAlign: "center",
               backgroundColor: PODIUM_COLORS[idx],
-              border: entry.userId === user?.id ? "2px solid #1976d2" : "none",
+              border: entry.userId === user?.id ? "2px solid #00B96B" : "none",
               boxShadow: entry.userId === user?.id ? 4 : 1,
             }}
           >
@@ -141,7 +141,7 @@ export const PodiumPage: React.FC = () => {
               {entry.userId === user?.id && (
                 <Chip label="Vos" size="small" color="primary" sx={{ mb: 1 }} />
               )}
-              <Typography variant="h5" sx={{ fontWeight: "bold", color: "#1976d2" }}>
+              <Typography variant="h5" sx={{ fontWeight: "bold", color: "primary.main" }}>
                 {entry.totalPoints} pts
               </Typography>
               <Typography variant="caption" sx={{ color: "#666", display: "block", mt: 1 }}>
@@ -170,7 +170,7 @@ export const PodiumPage: React.FC = () => {
                 key={entry.userId}
                 sx={{
                   backgroundColor:
-                    entry.userId === user?.id ? "#e3f2fd" : "inherit",
+                    entry.userId === user?.id ? "#E6F9F1" : "inherit",
                   fontWeight: entry.userId === user?.id ? "bold" : "normal",
                 }}
                 hover

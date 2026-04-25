@@ -36,12 +36,11 @@ export const CompanyProvider: React.FC<{ children: React.ReactNode }> = ({
   const updateCompany = useCallback(async (name: string) => {
     const { data: { session } } = await supabase.auth.getSession();
     const now = new Date().toISOString();
-    const { error } = await supabase.from("app_config").upsert({
-      key: "company_name",
+    const { error } = await supabase.from("app_config").update({
       value: name,
       updated_at: now,
       updated_by: session?.user.id ?? null,
-    });
+    }).eq("key", "company_name");
     if (error) throw new Error("Error al actualizar la empresa");
     setCompany({
       name,

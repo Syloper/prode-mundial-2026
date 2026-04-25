@@ -1,3 +1,5 @@
+export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
+
 export interface Database {
   public: {
     Tables: {
@@ -24,6 +26,7 @@ export interface Database {
           role?: "admin" | "user";
           company_code?: string | null;
         };
+        Relationships: [];
       };
       matches: {
         Row: {
@@ -57,6 +60,7 @@ export interface Database {
           away_score?: number | null;
           is_finished?: boolean;
         };
+        Relationships: [];
       };
       predictions: {
         Row: {
@@ -75,7 +79,11 @@ export interface Database {
           away_score: number;
           created_at?: string;
         };
-        Update: never;
+        Update: {
+          home_score?: number;
+          away_score?: number;
+        };
+        Relationships: [];
       };
       prizes: {
         Row: {
@@ -102,7 +110,16 @@ export interface Database {
           created_at?: string;
           created_by?: string | null;
         };
-        Update: Partial<Database["public"]["Tables"]["prizes"]["Insert"]>;
+        Update: {
+          name?: string;
+          description?: string;
+          photo_url?: string | null;
+          criteria?: "most_points_date" | "most_points_phase" | "most_points_tournament";
+          assignment_type?: "automatic" | "manual";
+          tie_resolution?: "all" | "draw" | "first";
+          phase?: string | null;
+        };
+        Relationships: [];
       };
       prize_assignments: {
         Row: {
@@ -125,7 +142,10 @@ export interface Database {
           phase?: string | null;
           assigned_by?: string | null;
         };
-        Update: never;
+        Update: {
+          user_name?: string | null;
+        };
+        Relationships: [];
       };
       app_config: {
         Row: {
@@ -145,10 +165,13 @@ export interface Database {
           updated_at?: string;
           updated_by?: string | null;
         };
+        Relationships: [];
       };
     };
+    Views: Record<string, never>;
     Functions: {
       get_rankings: {
+        Args: Record<string, never>;
         Returns: Array<{
           user_id: string;
           user_name: string;
@@ -158,11 +181,11 @@ export interface Database {
         }>;
       };
       is_admin: {
+        Args: Record<string, never>;
         Returns: boolean;
       };
-      seed_matches: {
-        Returns: void;
-      };
     };
+    Enums: Record<string, never>;
+    CompositeTypes: Record<string, never>;
   };
 }

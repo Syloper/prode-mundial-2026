@@ -79,7 +79,7 @@ export const MatchPredictionForm: React.FC<MatchPredictionFormProps> = ({
         mb: 2,
         border: "1px solid #eee",
         borderRadius: 1,
-        backgroundColor: isLocked && prediction ? "#f5f5f5" : "#fff",
+        backgroundColor: isLocked && prediction ? "background.default" : "background.paper",
       }}
     >
       {/* Cabecera: fecha y estado */}
@@ -115,7 +115,7 @@ export const MatchPredictionForm: React.FC<MatchPredictionFormProps> = ({
 
       {/* Predicción ya guardada */}
       {prediction && (
-        <Box sx={{ backgroundColor: "#e8f5e9", p: 2, borderRadius: 1, mb: 2 }}>
+        <Box sx={{ backgroundColor: "#E6F9F1", p: 2, borderRadius: 1, mb: 2 }}>
           <Typography variant="subtitle2" sx={{ fontWeight: "bold", mb: 1 }}>
             Tu predicción:
           </Typography>
@@ -132,7 +132,7 @@ export const MatchPredictionForm: React.FC<MatchPredictionFormProps> = ({
             </Typography>
             <Typography
               variant="h5"
-              sx={{ fontWeight: "bold", color: "#1976d2" }}
+              sx={{ fontWeight: "bold", color: "primary.main" }}
             >
               {prediction.homeScore} - {prediction.awayScore}
             </Typography>
@@ -213,7 +213,7 @@ export const MatchPredictionForm: React.FC<MatchPredictionFormProps> = ({
 
       {/* Resultado oficial */}
       {match.isFinished && (
-        <Box sx={{ mt: 2, p: 1, backgroundColor: "#fff3e0", borderRadius: 1 }}>
+        <Box sx={{ mt: 2, p: 1, backgroundColor: "#FFF8F0", borderRadius: 1, border: "1px solid #FFE0B2" }}>
           <Typography variant="caption" sx={{ fontWeight: "bold" }}>
             Resultado oficial: {match.homeTeam} {match.homeScore} -{" "}
             {match.awayScore} {match.awayTeam}

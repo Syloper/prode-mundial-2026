@@ -13,6 +13,7 @@ import { PrizeAssignment } from "../components/admin/PrizeAssignment";
 import { PrizeHistory } from "../components/admin/PrizeHistory";
 import { BannerUpload } from "../components/admin/BannerUpload";
 import { MatchResultsLoader } from "../components/admin/MatchResultsLoader";
+import { AddMatchForm } from "../components/admin/AddMatchForm";
 import { CompanyConfigComponent } from "../components/admin/CompanyConfig";
 import { UsersDashboard } from "../components/admin/UsersDashboard";
 
@@ -50,6 +51,7 @@ export const AdminDashboard: React.FC = () => {
             <Tab label="🎁 Entregar Premio" />
             <Tab label="📜 Historial" />
             <Tab label="⚽ Resultados" />
+            <Tab label="➕ Nuevo partido" />
             <Tab label="📸 Banner" />
             <Tab label="⚙️ Configuración" />
           </Tabs>
@@ -70,9 +72,12 @@ export const AdminDashboard: React.FC = () => {
               <MatchResultsLoader />
             </TabPanel>
             <TabPanel value={tab} index={5}>
-              <BannerUpload />
+              <AddMatchForm />
             </TabPanel>
             <TabPanel value={tab} index={6}>
+              <BannerUpload />
+            </TabPanel>
+            <TabPanel value={tab} index={7}>
               <CompanyConfigComponent />
             </TabPanel>
           </Box>

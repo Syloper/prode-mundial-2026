@@ -20,7 +20,7 @@ const GROUP_DEFINITIONS: Record<string, { teams: string[]; flags: string[] }> = 
 
 const ROUND_PAIRS = [[0, 1], [2, 3], [0, 2], [1, 3], [0, 3], [1, 2]] as const;
 
-export function buildMatchesForSeed(): Array<{
+type MatchSeedRow = {
   id: number;
   home_team: string;
   away_team: string;
@@ -29,8 +29,10 @@ export function buildMatchesForSeed(): Array<{
   group_name: string;
   scheduled_date: string;
   result_deadline: string;
-}> {
-  const result = [];
+};
+
+export function buildMatchesForSeed(): MatchSeedRow[] {
+  const result: MatchSeedRow[] = [];
   let id = 1;
   const groupKeys = Object.keys(GROUP_DEFINITIONS);
   const roundOffsets = [0, 4, 11];
