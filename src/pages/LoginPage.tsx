@@ -1,9 +1,13 @@
 import React from "react";
 import { Container, Paper, Box, Typography, Divider } from "@mui/material";
 import { LoginForm } from "../components/auth/LoginForm";
-import { Link as RouterLink } from "react-router-dom";
+import { Link as RouterLink, Navigate } from "react-router-dom";
+import { useAuth } from "../hooks/useAuth";
 
-export const LoginPage: React.FC = () => (
+export const LoginPage: React.FC = () => {
+  const { user, isLoading } = useAuth();
+  if (!isLoading && user) return <Navigate to="/" replace />;
+  return (
   <Box
     sx={{
       minHeight: "100vh",
@@ -70,4 +74,5 @@ export const LoginPage: React.FC = () => (
       </Box>
     </Container>
   </Box>
-);
+  );
+};

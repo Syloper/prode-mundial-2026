@@ -10,9 +10,9 @@ export const LoginForm: React.FC = () => {
   const {
     register,
     handleSubmit,
-    formState: { errors },
+    formState: { errors, isSubmitting },
   } = useForm<LoginFormData>({ resolver: zodResolver(loginSchema) });
-  const { login, isLoading, error } = useAuth();
+  const { login, error } = useAuth();
   const navigate = useNavigate();
 
   const onSubmit = async (data: LoginFormData) => {
@@ -56,9 +56,9 @@ export const LoginForm: React.FC = () => {
         fullWidth
         variant="contained"
         sx={{ mt: 2 }}
-        disabled={isLoading}
+        disabled={isSubmitting}
       >
-        {isLoading ? "Ingresando..." : "Ingresar"}
+        {isSubmitting ? "Ingresando..." : "Ingresar"}
       </Button>
     </Box>
   );
