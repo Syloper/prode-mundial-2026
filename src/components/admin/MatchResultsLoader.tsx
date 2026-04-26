@@ -22,7 +22,9 @@ import {
   Chip,
   Typography,
   Divider,
+  Autocomplete,
 } from "@mui/material";
+import { TEAM_FLAGS, ALL_TEAMS } from "../../utils/teamFlags";
 import { useMatches } from "../../hooks/useMatches";
 import { useNotification } from "../../hooks/useNotification";
 import { useAuth } from "../../hooks/useAuth";
@@ -34,13 +36,14 @@ const toDatetimeLocal = (d: Date) => {
 };
 
 export const MatchResultsLoader: React.FC = () => {
-  const { matches, updateMatchResult, updateMatch, seedMatchesIfEmpty, isSeeding } = useMatches();
+  const { matches, updateMatchResult, updateMatch, updateKnockoutFromStandings, seedMatchesIfEmpty, isSeeding } = useMatches();
   const { addNotification } = useNotification();
   const { user } = useAuth();
 
   const [openDialog, setOpenDialog] = useState(false);
   const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [isUpdatingKnockout, setIsUpdatingKnockout] = useState(false);
 
   // Campos editables
   const [homeTeam, setHomeTeam] = useState("");
@@ -103,6 +106,19 @@ export const MatchResultsLoader: React.FC = () => {
     }
   };
 
+  const handleUpdateKnockout = async () => {
+    setIsUpdatingKnockout(true);
+    try {
+      const count = await updateKnockoutFromStandings();
+      addNotification(`${count} cruces de 16avos actualizados correctamente`, "success");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Error al actualizar los cruces";
+      addNotification(message, "error");
+    } finally {
+      setIsUpdatingKnockout(false);
+    }
+  };
+
   const handleSeedMatches = async () => {
     try {
       const seeded = await seedMatchesIfEmpty();
@@ -147,6 +163,7 @@ export const MatchResultsLoader: React.FC = () => {
                 <TableHead>
                   <TableRow sx={{ backgroundColor: "#f5f5f5" }}>
                     <TableCell><strong>Fecha</strong></TableCell>
+                    <TableCell><strong>Grupo / Fase</strong></TableCell>
                     <TableCell><strong>Partido</strong></TableCell>
                     <TableCell><strong>Resultado</strong></TableCell>
                     <TableCell align="center"><strong>Estado</strong></TableCell>
@@ -160,6 +177,12 @@ export const MatchResultsLoader: React.FC = () => {
                         {new Date(match.scheduledDate).toLocaleDateString("es-AR", {
                           day: "2-digit", month: "2-digit", year: "2-digit",
                         })}
+                      </TableCell>
+                      <TableCell sx={{ whiteSpace: "nowrap" }}>
+                        {match.phase
+                          ? <Chip label={match.phase} size="small" color="primary" variant="outlined" />
+                          : <Chip label={`Grupo ${match.group}`} size="small" variant="outlined" />
+                        }
                       </TableCell>
                       <TableCell>
                         {match.homeTeamFlag} {match.homeTeam} vs {match.awayTeam} {match.awayTeamFlag}
@@ -189,8 +212,19 @@ export const MatchResultsLoader: React.FC = () => {
               </Table>
             </TableContainer>
 
-            <Box sx={{ mt: 2, p: 1, backgroundColor: "#f0f0f0", borderRadius: 1 }}>
-              Pendientes: <strong>{pendingMatches.length}</strong> de {matches.length}
+            <Box sx={{ mt: 2, display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 1 }}>
+              <Box sx={{ p: 1, backgroundColor: "#f0f0f0", borderRadius: 1 }}>
+                Pendientes: <strong>{pendingMatches.length}</strong> de {matches.length}
+              </Box>
+              <Button
+                variant="outlined"
+                color="primary"
+                onClick={handleUpdateKnockout}
+                disabled={isUpdatingKnockout}
+                startIcon={isUpdatingKnockout ? <CircularProgress size={16} /> : undefined}
+              >
+                {isUpdatingKnockout ? "Calculando..." : "⚡ Actualizar cruces 16avos desde grupos"}
+              </Button>
             </Box>
           </>
         )}
@@ -201,34 +235,58 @@ export const MatchResultsLoader: React.FC = () => {
             {/* Equipos */}
             <Box sx={{ display: "flex", gap: 1 }}>
               <TextField
-                label="Bandera local"
+                label="🏳️"
                 value={homeFlag}
                 onChange={(e) => setHomeFlag(e.target.value)}
-                sx={{ width: 90 }}
+                sx={{ width: 72 }}
                 size="small"
+                inputProps={{ maxLength: 8 }}
               />
-              <TextField
-                label="Equipo local"
-                value={homeTeam}
-                onChange={(e) => setHomeTeam(e.target.value)}
+              <Autocomplete
+                options={ALL_TEAMS}
+                freeSolo
                 fullWidth
-                size="small"
+                value={homeTeam}
+                onChange={(_, v) => {
+                  const team = v ?? "";
+                  setHomeTeam(team);
+                  if (TEAM_FLAGS[team]) setHomeFlag(TEAM_FLAGS[team]);
+                }}
+                onInputChange={(_, v) => {
+                  setHomeTeam(v);
+                  if (TEAM_FLAGS[v]) setHomeFlag(TEAM_FLAGS[v]);
+                }}
+                renderInput={(params) => (
+                  <TextField {...params} label="Equipo local" size="small" />
+                )}
               />
             </Box>
             <Box sx={{ display: "flex", gap: 1 }}>
               <TextField
-                label="Bandera visitante"
+                label="🏳️"
                 value={awayFlag}
                 onChange={(e) => setAwayFlag(e.target.value)}
-                sx={{ width: 90 }}
+                sx={{ width: 72 }}
                 size="small"
+                inputProps={{ maxLength: 8 }}
               />
-              <TextField
-                label="Equipo visitante"
-                value={awayTeam}
-                onChange={(e) => setAwayTeam(e.target.value)}
+              <Autocomplete
+                options={ALL_TEAMS}
+                freeSolo
                 fullWidth
-                size="small"
+                value={awayTeam}
+                onChange={(_, v) => {
+                  const team = v ?? "";
+                  setAwayTeam(team);
+                  if (TEAM_FLAGS[team]) setAwayFlag(TEAM_FLAGS[team]);
+                }}
+                onInputChange={(_, v) => {
+                  setAwayTeam(v);
+                  if (TEAM_FLAGS[v]) setAwayFlag(TEAM_FLAGS[v]);
+                }}
+                renderInput={(params) => (
+                  <TextField {...params} label="Equipo visitante" size="small" />
+                )}
               />
             </Box>
 

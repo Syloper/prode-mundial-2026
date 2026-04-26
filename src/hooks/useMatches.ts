@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "../lib/supabase";
 import { Match } from "../types";
+import { calculateGroupStandings, resolveKnockoutUpdates } from "../utils/standingsHelpers";
 
 // Definición de grupos y equipos del Mundial 2026
 const GROUP_DEFINITIONS: Record<string, { teams: string[]; flags: string[] }> = {
@@ -78,6 +79,7 @@ function mapDbMatch(row: {
   home_score: number | null;
   away_score: number | null;
   is_finished: boolean;
+  phase?: string | null;
 }): Match {
   return {
     id: String(row.id),
@@ -86,6 +88,7 @@ function mapDbMatch(row: {
     homeTeamFlag: row.home_team_flag,
     awayTeamFlag: row.away_team_flag,
     group: row.group_name,
+    phase: row.phase ?? undefined,
     scheduledDate: new Date(row.scheduled_date),
     resultDeadline: new Date(row.result_deadline),
     homeScore: row.home_score ?? undefined,
@@ -214,5 +217,48 @@ export const useMatches = () => {
     return true;
   }, [fetchMatches]);
 
-  return { matches, isLoading, isSeeding, updateMatchResult, updateMatch, seedMatchesIfEmpty, refetch: fetchMatches };
+  const updateKnockoutFromStandings = useCallback(async () => {
+    const groupMatches = matches.filter((m) => parseInt(m.id) <= 72);
+
+    // Armar equipos por grupo desde los partidos
+    const teamsByGroup: Record<string, { name: string; flag: string }[]> = {};
+    for (const m of groupMatches) {
+      if (!teamsByGroup[m.group]) teamsByGroup[m.group] = [];
+      if (!teamsByGroup[m.group].find((t) => t.name === m.homeTeam))
+        teamsByGroup[m.group].push({ name: m.homeTeam, flag: m.homeTeamFlag });
+      if (!teamsByGroup[m.group].find((t) => t.name === m.awayTeam))
+        teamsByGroup[m.group].push({ name: m.awayTeam, flag: m.awayTeamFlag });
+    }
+
+    // Calcular posiciones por grupo
+    const allStandings: Record<string, ReturnType<typeof calculateGroupStandings>> = {};
+    for (const [group, teams] of Object.entries(teamsByGroup)) {
+      allStandings[group] = calculateGroupStandings(
+        groupMatches.filter((m) => m.group === group),
+        group,
+        teams
+      );
+    }
+
+    const updates = resolveKnockoutUpdates(allStandings);
+    if (updates.length === 0) throw new Error("No hay suficientes resultados de grupos para calcular los cruces");
+
+    for (const u of updates) {
+      const { error } = await supabase
+        .from("matches")
+        .update({
+          home_team: u.homeTeam,
+          home_team_flag: u.homeFlag,
+          away_team: u.awayTeam,
+          away_team_flag: u.awayFlag,
+        })
+        .eq("id", u.matchId);
+      if (error) throw new Error(`Error actualizando partido ${u.matchId}: ${error.message}`);
+    }
+
+    await fetchMatches();
+    return updates.length;
+  }, [matches, fetchMatches]);
+
+  return { matches, isLoading, isSeeding, updateMatchResult, updateMatch, updateKnockoutFromStandings, seedMatchesIfEmpty, refetch: fetchMatches };
 };

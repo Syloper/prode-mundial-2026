@@ -26,6 +26,7 @@ export interface Match {
   homeTeamFlag: string;
   awayTeamFlag: string;
   group: string;
+  phase?: string;
   scheduledDate: Date;
   resultDeadline: Date;
   homeScore?: number;
