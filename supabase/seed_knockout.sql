@@ -5,6 +5,9 @@
 -- Zona horaria: UTC (EDT = UTC-4 en verano)
 -- ============================================================
 
+-- Agregar columna phase si no existe
+ALTER TABLE public.matches ADD COLUMN IF NOT EXISTS phase text;
+
 INSERT INTO public.matches
   (id, home_team, away_team, home_team_flag, away_team_flag,
    scheduled_date, result_deadline, group_name, phase)

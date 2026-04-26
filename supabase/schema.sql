@@ -32,7 +32,8 @@ create table if not exists public.matches (
   result_deadline timestamptz not null,
   home_score      integer check (home_score >= 0),
   away_score      integer check (away_score >= 0),
-  is_finished     boolean not null default false
+  is_finished     boolean not null default false,
+  phase           text
 );
 
 -- Predicciones de usuarios

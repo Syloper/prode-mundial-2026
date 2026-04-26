@@ -166,6 +166,37 @@ export const useMatches = () => {
     []
   );
 
+  const updateMatch = useCallback(
+    async (
+      matchId: string,
+      fields: {
+        homeTeam?: string;
+        awayTeam?: string;
+        homeTeamFlag?: string;
+        awayTeamFlag?: string;
+        scheduledDate?: Date;
+        resultDeadline?: Date;
+      }
+    ) => {
+      const update: Record<string, unknown> = {};
+      if (fields.homeTeam !== undefined) update.home_team = fields.homeTeam;
+      if (fields.awayTeam !== undefined) update.away_team = fields.awayTeam;
+      if (fields.homeTeamFlag !== undefined) update.home_team_flag = fields.homeTeamFlag;
+      if (fields.awayTeamFlag !== undefined) update.away_team_flag = fields.awayTeamFlag;
+      if (fields.scheduledDate !== undefined) update.scheduled_date = fields.scheduledDate.toISOString();
+      if (fields.resultDeadline !== undefined) update.result_deadline = fields.resultDeadline.toISOString();
+
+      const { error } = await supabase
+        .from("matches")
+        .update(update)
+        .eq("id", parseInt(matchId));
+
+      if (error) throw new Error("Error al actualizar el partido");
+      await fetchMatches();
+    },
+    [fetchMatches]
+  );
+
   // Función para sembrar partidos si la tabla está vacía (solo admins)
   const seedMatchesIfEmpty = useCallback(async () => {
     const { count } = await supabase
@@ -184,5 +215,5 @@ export const useMatches = () => {
     return true;
   }, [fetchMatches]);
 
-  return { matches, isLoading, isSeeding, updateMatchResult, seedMatchesIfEmpty, refetch: fetchMatches };
+  return { matches, isLoading, isSeeding, updateMatchResult, updateMatch, seedMatchesIfEmpty, refetch: fetchMatches };
 };
