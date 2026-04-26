@@ -1,145 +1,117 @@
-# PRODE MUNDIAL 2026 - Frontend React
+# Prode Mundial 2026
 
-Una aplicación moderna y completa para gestionar pronósticos de fútbol (PRODE) del Mundial 2026.
+Aplicación web para gestionar pronósticos del Mundial 2026. Los usuarios predicen resultados de partidos y acumulan puntos. El admin gestiona resultados, premios y el bracket de eliminación directa.
 
-## 📦 Instalación y Ejecución
+Desarrollado con React + TypeScript + Supabase. Marca [Syloper](https://syloper.com).
 
-### Requisitos previos
-- Node.js 18+ instalado
-- npm o yarn
+---
 
-### Pasos de instalación
+## Requisitos
+
+- Node.js 18+
+- Una cuenta y proyecto en [Supabase](https://supabase.com)
+
+## Instalación
 
 ```bash
-# 1. Navegar al directorio del proyecto
-cd "D:\Dev-Work\PRODE_MUNDIAL"
-
-# 2. Instalar dependencias
 npm install
-
-# 3. Ejecutar en modo desarrollo
-npm run dev
-
-# 4. Abrirá automáticamente en http://localhost:5173
 ```
 
-## 🔐 Credenciales de Prueba
+Copiá `.env.example` a `.env` y completá con tus credenciales de Supabase:
 
-### Admin
-- Email: `admin@prode.com`
-- Contraseña: `admin123`
+```
+VITE_SUPABASE_URL=https://xxxxxxxxxxxx.supabase.co
+VITE_SUPABASE_ANON_KEY=eyJhbGci...
+```
 
-### Usuario Regular
-Puedes registrarte con cualquier email/contraseña válida
+Encontrás estas credenciales en **Supabase → Settings → API**.
 
-## ✨ Características Principales
+## Base de datos
 
-✅ **Autenticación y Registro** - Sistema completo con validación
-✅ **Dashboard Admin** - Gestión de usuarios y premios
-✅ **Vista de Grupos** - Seguimiento de partidos del mundial
-✅ **Sistema de Puntuación** - Cálculo automático de puntos
-✅ **Premios** - Asignación automática y manual
-✅ **Ranking/Podio** - Top 3 por diferentes criterios
-✅ **Banner Publicitario** - Carga de imágenes
-✅ **Responsive Design** - Funciona en móvil y desktop
-✅ **Notificaciones** - Snackbars para eventos importantes
+Ejecutá el script en el SQL Editor de Supabase:
 
-## 🛠️ Tecnologías Utilizadas
+```
+supabase/schema.sql          ← schema completo + 72 partidos de grupos
+supabase/seed_knockout.sql   ← 32 partidos de eliminación directa (16avos a final)
+```
 
-- **React 18+** - Librería de UI
-- **TypeScript** - Type safety
-- **Vite** - Build tool rápido
-- **Material-UI (MUI)** - Componentes UI
-- **React Router DOM** - Navegación
-- **React Hook Form + Zod** - Formularios y validaciones
-- **Axios** - HTTP client
-- **Date-fns** - Manejo de fechas
-- **Context API** - Estado global
+Luego registrate en la app y promovete a admin:
 
-## 📁 Estructura de Carpetas
+```sql
+UPDATE public.profiles SET role = 'admin'
+WHERE id = (SELECT id FROM auth.users WHERE email = 'tu@email.com');
+```
+
+## Desarrollo
+
+```bash
+npm run dev      # http://localhost:5173
+npm run build
+npm run preview
+```
+
+---
+
+## Sistema de puntos
+
+| Acierto | Puntos |
+|---|---|
+| Resultado exacto (ej: predijiste 2-1 y fue 2-1) | **+3** |
+| Ganador correcto o empate acertado | **+1** |
+| Predicción incorrecta | 0 |
+
+El límite para cargar predicciones cierra **24 horas antes** de cada partido.
+
+---
+
+## Funcionalidades
+
+### Usuarios
+- Registro y login con email (emails `@syloper.com` no requieren confirmación)
+- Predicción de resultados partido a partido
+- Ranking general con podio top 3
+- Historial de premios recibidos
+
+### Admin (`/admin`)
+- **Usuarios** — listado y búsqueda de todos los registrados
+- **Resultados** — cargar y editar resultados de partidos; actualizar cruces de 16avos automáticamente desde posiciones de grupos
+- **Nuevo partido** — agregar partidos de eliminación directa con autocompletado de equipos y banderas
+- **Crear premio** — premios automáticos (por puntos de fecha/fase/torneo) o manuales; configuración de desempate
+- **Entregar premio** — asignación manual de premios a usuarios
+- **Historial** — registro completo de premios entregados
+- **Configuración** — nombre de la empresa visible en la app
+- **Zona peligrosa** — reiniciar resultados de todos los partidos; vaciar predicciones de un usuario
+
+---
+
+## Stack
+
+| Capa | Tecnología |
+|---|---|
+| Frontend | React 18, TypeScript, Vite |
+| UI | Material UI v5, Inter font |
+| Forms | React Hook Form + Zod |
+| Backend | Supabase (PostgreSQL + Auth + Realtime) |
+| Routing | React Router v6 |
+
+---
+
+## Estructura
 
 ```
 src/
 ├── components/
-│   ├── common/         # Componentes reutilizables
-│   ├── auth/          # Componentes de autenticación
-│   └── admin/         # Componentes de admin
-├── pages/             # Páginas principales
-├── contexts/          # Context API
-├── hooks/             # Custom hooks
-├── services/          # API y mock
-├── types/             # TypeScript interfaces
-├── utils/             # Utilidades
-├── theme.ts           # Configuración de MUI
-└── App.tsx            # Componente raíz
+│   ├── admin/        # Formularios y tablas del panel admin
+│   ├── auth/         # Login, registro, rutas protegidas
+│   └── common/       # Navbar, formulario de predicción, error boundary
+├── contexts/         # Auth, predicciones, premios, empresa, notificaciones
+├── hooks/            # useMatches, usePrediction, usePrize, useAuth...
+├── pages/            # GroupsPage, PodiumPage, AdminDashboard, Login, Register
+├── utils/            # Helpers de scoring, posiciones de grupos, banderas, validadores
+├── lib/              # Cliente Supabase + tipos de base de datos
+└── theme.ts          # Tema Syloper (verde #00B96B, gris #2A3235)
+
+supabase/
+├── schema.sql           # Tablas, RLS, triggers, función get_rankings()
+└── seed_knockout.sql    # Partidos de eliminación directa
 ```
-
-## 🧪 Datos Mock
-
-La aplicación usa datos mock para simular:
-- 2 usuarios iniciales (1 admin + 1 usuario regular)
-- 8 partidos de fase de grupos
-- Sistema de puntuación automático
-- Premios y asignaciones
-- Banner publicitario
-
-Todos los datos se guardan en memoria durante la sesión.
-
-## 🎯 Flujo de Usuario
-
-1. **Registro** - Crear nueva cuenta
-2. **Login** - Acceder a la plataforma
-3. **Ver Grupos** - Ver equipos y partidos
-4. **Hacer Pronósticos** - Predecir resultados (próxima versión)
-5. **Ver Puntuación** - Seguimiento de puntaje en tiempo real
-6. **Premios** - Recibir notificaciones de premios ganados
-
-### Flujo Admin
-
-1. **Login como admin** (admin@prode.com)
-2. **Dashboard Admin** - Gestionar usuarios y premios
-3. **Cargar Resultados** - Ingresar resultados reales
-4. **Crear Premios** - Definir nuevos premios
-5. **Asignar Premios** - Manual o automáticamente
-
-## 🚀 Próximas Mejoras
-
-- [ ] Backend API real
-- [ ] Integración con base de datos
-- [ ] Sistema de pronósticos de usuarios
-- [ ] Mercado de apuestas
-- [ ] Notificaciones en tiempo real con WebSocket
-- [ ] Exportar reportes
-
-## 📝 Notas Técnicas
-
-- **Validaciones**: Todas las formas usan Zod para validación de datos
-- **Estado Global**: AuthContext para autenticación, NotificationContext para notificaciones
-- **Mock API**: Simula asincronía con setTimeout
-- **Responsive**: Usa Grid de MUI con breakpoints adaptativos
-- **Tema**: Colores alusivos a fútbol/mundial
-
-## 🐛 Troubleshooting
-
-### "Cannot find module..."
-```bash
-npm install
-```
-
-### Puerto 5173 en uso
-```bash
-npm run dev -- --port 5174
-```
-
-### Problemas de compilación TypeScript
-```bash
-npm run lint
-```
-
-## 📄 Licencia
-
-Este proyecto es de código abierto.
-
----
-
-**Desarrollado con ❤️ para PRODE MUNDIAL 2026**
