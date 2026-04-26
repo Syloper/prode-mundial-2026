@@ -104,9 +104,48 @@ export const PodiumPage: React.FC = () => {
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
-      <Typography variant="h4" sx={{ mb: 4, fontWeight: "bold" }}>
+      <Typography variant="h4" sx={{ mb: 3, fontWeight: "bold" }}>
         Ranking
       </Typography>
+
+      {/* Sistema de puntos */}
+      <Box
+        sx={{
+          mb: 4,
+          p: 2.5,
+          borderRadius: 2,
+          border: "1px solid #C8EFD4",
+          backgroundColor: "#F0FBF4",
+          display: "flex",
+          flexWrap: "wrap",
+          gap: 2,
+          alignItems: "flex-start",
+        }}
+      >
+        <Typography variant="subtitle2" sx={{ fontWeight: 700, color: "secondary.main", width: "100%" }}>
+          ¿Cómo se calculan los puntos?
+        </Typography>
+        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1.5 }}>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <Box sx={{ px: 1.5, py: 0.5, backgroundColor: "#00B96B", borderRadius: 1 }}>
+              <Typography variant="caption" sx={{ color: "#fff", fontWeight: 700 }}>+3 pts</Typography>
+            </Box>
+            <Typography variant="body2">Resultado exacto (ej: predijiste 2-1 y fue 2-1)</Typography>
+          </Box>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <Box sx={{ px: 1.5, py: 0.5, backgroundColor: "#2A3235", borderRadius: 1 }}>
+              <Typography variant="caption" sx={{ color: "#fff", fontWeight: 700 }}>+1 pt</Typography>
+            </Box>
+            <Typography variant="body2">Ganador correcto o empate acertado (resultado diferente)</Typography>
+          </Box>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <Box sx={{ px: 1.5, py: 0.5, backgroundColor: "#e0e0e0", borderRadius: 1 }}>
+              <Typography variant="caption" sx={{ color: "#555", fontWeight: 700 }}>0 pts</Typography>
+            </Box>
+            <Typography variant="body2">Predicción incorrecta</Typography>
+          </Box>
+        </Box>
+      </Box>
 
       {/* Podio top 3 */}
       <Box
