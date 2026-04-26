@@ -14,6 +14,7 @@ import { PrizeHistory } from "../components/admin/PrizeHistory";
 import { MatchResultsLoader } from "../components/admin/MatchResultsLoader";
 import { AddMatchForm } from "../components/admin/AddMatchForm";
 import { CompanyConfigComponent } from "../components/admin/CompanyConfig";
+import { DangerZone } from "../components/admin/DangerZone";
 import { UsersDashboard } from "../components/admin/UsersDashboard";
 
 interface TabPanelProps {
@@ -52,6 +53,7 @@ export const AdminDashboard: React.FC = () => {
             <Tab label="⚽ Resultados" />
             <Tab label="➕ Nuevo partido" />
             <Tab label="⚙️ Configuración" />
+            <Tab label="⚠️ Zona peligrosa" />
           </Tabs>
           <Box sx={{ p: 3 }}>
             <TabPanel value={tab} index={0}>
@@ -74,6 +76,9 @@ export const AdminDashboard: React.FC = () => {
             </TabPanel>
             <TabPanel value={tab} index={6}>
               <CompanyConfigComponent />
+            </TabPanel>
+            <TabPanel value={tab} index={7}>
+              <DangerZone />
             </TabPanel>
           </Box>
         </Paper>

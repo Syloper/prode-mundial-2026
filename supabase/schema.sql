@@ -199,6 +199,9 @@ create policy "predictions_insert_own" on public.predictions
     )
   );
 
+create policy "predictions_delete_admin" on public.predictions
+  for delete using (is_admin());
+
 -- Prizes: lectura para autenticados; escritura solo admins
 create policy "prizes_select" on public.prizes
   for select using (auth.uid() is not null);
