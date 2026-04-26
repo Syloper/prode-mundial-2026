@@ -333,3 +333,24 @@ on conflict (key) do nothing;
 -- UPDATE public.profiles SET role = 'admin' WHERE id = (
 --   SELECT id FROM auth.users WHERE email = 'admin@tuempresa.com'
 -- );
+
+-- ============================================================
+-- Auto-confirmar emails @syloper.com sin verificación
+-- ============================================================
+create or replace function public.auto_confirm_syloper_email()
+returns trigger
+language plpgsql
+security definer set search_path = auth
+as $$
+begin
+  if new.email ilike '%@syloper.com' then
+    new.email_confirmed_at = now();
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists on_syloper_email_auto_confirm on auth.users;
+create trigger on_syloper_email_auto_confirm
+  before insert on auth.users
+  for each row execute procedure public.auto_confirm_syloper_email();

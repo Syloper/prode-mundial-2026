@@ -10,9 +10,9 @@ export const RegisterForm: React.FC = () => {
   const {
     register,
     handleSubmit,
-    formState: { errors },
+    formState: { errors, isSubmitting },
   } = useForm<RegisterFormData>({ resolver: zodResolver(registerSchema) });
-  const { register: registerUser, isLoading, error } = useAuth();
+  const { register: registerUser, error } = useAuth();
   const navigate = useNavigate();
 
   const onSubmit = async (data: RegisterFormData) => {
@@ -22,7 +22,7 @@ export const RegisterForm: React.FC = () => {
         email: data.email,
         dni: data.dni,
         password: data.password,
-        companyCode: data.companyCode,
+        companyCode: "SYLOPER",
       });
       navigate("/");
     } catch {
@@ -75,14 +75,7 @@ export const RegisterForm: React.FC = () => {
         error={!!errors.password}
         helperText={errors.password?.message}
       />
-      <TextField
-        {...register("companyCode")}
-        label="Código empresa (opcional)"
-        fullWidth
-        margin="normal"
-        helperText={errors.companyCode?.message}
-      />
-      <Typography variant="caption" sx={{ color: "#666", display: "block", mt: 1 }}>
+<Typography variant="caption" sx={{ color: "#666", display: "block", mt: 1 }}>
         La contraseña debe tener al menos 8 caracteres, una mayúscula y un número.
       </Typography>
       <Button
@@ -90,9 +83,9 @@ export const RegisterForm: React.FC = () => {
         fullWidth
         variant="contained"
         sx={{ mt: 2 }}
-        disabled={isLoading}
+        disabled={isSubmitting}
       >
-        {isLoading ? "Registrando..." : "Registrarse"}
+        {isSubmitting ? "Registrando..." : "Registrarse"}
       </Button>
     </Box>
   );
