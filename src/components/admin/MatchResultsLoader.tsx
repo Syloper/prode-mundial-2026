@@ -19,56 +19,81 @@ import {
   DialogContent,
   DialogActions,
   CircularProgress,
+  Chip,
+  Typography,
+  Divider,
 } from "@mui/material";
 import { useMatches } from "../../hooks/useMatches";
 import { useNotification } from "../../hooks/useNotification";
 import { useAuth } from "../../hooks/useAuth";
 import { Match } from "../../types";
 
+const toDatetimeLocal = (d: Date) => {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+};
+
 export const MatchResultsLoader: React.FC = () => {
-  const { matches, updateMatchResult, seedMatchesIfEmpty, isSeeding } = useMatches();
+  const { matches, updateMatchResult, updateMatch, seedMatchesIfEmpty, isSeeding } = useMatches();
   const { addNotification } = useNotification();
   const { user } = useAuth();
+
   const [openDialog, setOpenDialog] = useState(false);
   const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
-  const [homeScore, setHomeScore] = useState("");
-  const [awayScore, setAwayScore] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
-  const pendingMatches = matches.filter((m) => !m.isFinished);
+  // Campos editables
+  const [homeTeam, setHomeTeam] = useState("");
+  const [awayTeam, setAwayTeam] = useState("");
+  const [homeFlag, setHomeFlag] = useState("");
+  const [awayFlag, setAwayFlag] = useState("");
+  const [scheduledDate, setScheduledDate] = useState("");
+  const [homeScore, setHomeScore] = useState("");
+  const [awayScore, setAwayScore] = useState("");
 
   const handleOpenDialog = (match: Match) => {
     setSelectedMatch(match);
-    setHomeScore("");
-    setAwayScore("");
+    setHomeTeam(match.homeTeam);
+    setAwayTeam(match.awayTeam);
+    setHomeFlag(match.homeTeamFlag);
+    setAwayFlag(match.awayTeamFlag);
+    setScheduledDate(toDatetimeLocal(new Date(match.scheduledDate)));
+    setHomeScore(match.homeScore !== undefined ? String(match.homeScore) : "");
+    setAwayScore(match.awayScore !== undefined ? String(match.awayScore) : "");
     setOpenDialog(true);
   };
 
   const handleCloseDialog = () => {
     setOpenDialog(false);
     setSelectedMatch(null);
-    setHomeScore("");
-    setAwayScore("");
   };
 
-  const handleSaveResult = async () => {
+  const handleSave = async () => {
     if (!selectedMatch) return;
-
-    const home = parseInt(homeScore);
-    const away = parseInt(awayScore);
-
-    if (isNaN(home) || isNaN(away) || home < 0 || away < 0) {
-      addNotification("Ingresá números válidos (0 o mayor)", "error");
-      return;
-    }
-
     setIsSaving(true);
     try {
-      await updateMatchResult(selectedMatch.id, home, away);
-      addNotification(
-        `Resultado guardado: ${selectedMatch.homeTeam} ${home} - ${away} ${selectedMatch.awayTeam}`,
-        "success"
-      );
+      const newDate = new Date(scheduledDate);
+      const newDeadline = new Date(newDate.getTime() - 24 * 60 * 60 * 1000);
+
+      await updateMatch(selectedMatch.id, {
+        homeTeam,
+        awayTeam,
+        homeTeamFlag: homeFlag,
+        awayTeamFlag: awayFlag,
+        scheduledDate: newDate,
+        resultDeadline: newDeadline,
+      });
+
+      const hasScores = homeScore !== "" && awayScore !== "";
+      if (hasScores) {
+        const home = parseInt(homeScore);
+        const away = parseInt(awayScore);
+        if (!isNaN(home) && !isNaN(away) && home >= 0 && away >= 0) {
+          await updateMatchResult(selectedMatch.id, home, away);
+        }
+      }
+
+      addNotification("Partido actualizado correctamente", "success");
       handleCloseDialog();
     } catch (err) {
       const message = err instanceof Error ? err.message : "Error al guardar";
@@ -81,11 +106,10 @@ export const MatchResultsLoader: React.FC = () => {
   const handleSeedMatches = async () => {
     try {
       const seeded = await seedMatchesIfEmpty();
-      if (seeded) {
-        addNotification("Partidos sembrados correctamente", "success");
-      } else {
-        addNotification("Los partidos ya estaban cargados", "info");
-      }
+      addNotification(
+        seeded ? "Partidos sembrados correctamente" : "Los partidos ya estaban cargados",
+        seeded ? "success" : "info"
+      );
     } catch (err) {
       const message = err instanceof Error ? err.message : "Error al sembrar";
       addNotification(message, "error");
@@ -96,9 +120,11 @@ export const MatchResultsLoader: React.FC = () => {
     return <Alert severity="error">Acceso restringido a administradores</Alert>;
   }
 
+  const pendingMatches = matches.filter((m) => !m.isFinished);
+
   return (
     <Card>
-      <CardHeader title="Cargar Resultados de Partidos" />
+      <CardHeader title="Partidos y Resultados" />
       <CardContent>
         {matches.length === 0 ? (
           <Box>
@@ -116,10 +142,6 @@ export const MatchResultsLoader: React.FC = () => {
           </Box>
         ) : (
           <>
-            <Alert severity="info" sx={{ mb: 2 }}>
-              Solo se puede cargar un resultado por partido. Una vez guardado no se puede modificar.
-            </Alert>
-
             <TableContainer component={Paper}>
               <Table size="small">
                 <TableHead>
@@ -127,37 +149,39 @@ export const MatchResultsLoader: React.FC = () => {
                     <TableCell><strong>Fecha</strong></TableCell>
                     <TableCell><strong>Partido</strong></TableCell>
                     <TableCell><strong>Resultado</strong></TableCell>
-                    <TableCell><strong>Estado</strong></TableCell>
-                    <TableCell align="center"><strong>Acción</strong></TableCell>
+                    <TableCell align="center"><strong>Estado</strong></TableCell>
+                    <TableCell align="center"><strong>Editar</strong></TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {matches.map((match) => (
-                    <TableRow key={match.id}>
-                      <TableCell>
-                        {new Date(match.scheduledDate).toLocaleDateString("es-AR")}
+                    <TableRow key={match.id} hover>
+                      <TableCell sx={{ whiteSpace: "nowrap" }}>
+                        {new Date(match.scheduledDate).toLocaleDateString("es-AR", {
+                          day: "2-digit", month: "2-digit", year: "2-digit",
+                        })}
                       </TableCell>
                       <TableCell>
                         {match.homeTeamFlag} {match.homeTeam} vs {match.awayTeam} {match.awayTeamFlag}
                       </TableCell>
-                      <TableCell>
-                        {match.isFinished
-                          ? `${match.homeScore} - ${match.awayScore}`
-                          : "-"}
-                      </TableCell>
-                      <TableCell>
-                        {match.isFinished ? "Completado" : "Pendiente"}
+                      <TableCell sx={{ fontWeight: "bold" }}>
+                        {match.isFinished ? `${match.homeScore} - ${match.awayScore}` : "-"}
                       </TableCell>
                       <TableCell align="center">
-                        {!match.isFinished && (
-                          <Button
-                            size="small"
-                            variant="contained"
-                            onClick={() => handleOpenDialog(match)}
-                          >
-                            Cargar
-                          </Button>
-                        )}
+                        <Chip
+                          label={match.isFinished ? "Finalizado" : "Pendiente"}
+                          color={match.isFinished ? "success" : "default"}
+                          size="small"
+                        />
+                      </TableCell>
+                      <TableCell align="center">
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          onClick={() => handleOpenDialog(match)}
+                        >
+                          Editar
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -172,29 +196,81 @@ export const MatchResultsLoader: React.FC = () => {
         )}
 
         <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
-          <DialogTitle>
-            Resultado: {selectedMatch?.homeTeam} vs {selectedMatch?.awayTeam}
-          </DialogTitle>
-          <DialogContent sx={{ pt: 2 }}>
+          <DialogTitle>Editar partido</DialogTitle>
+          <DialogContent sx={{ pt: 2, display: "flex", flexDirection: "column", gap: 2 }}>
+            {/* Equipos */}
+            <Box sx={{ display: "flex", gap: 1 }}>
+              <TextField
+                label="Bandera local"
+                value={homeFlag}
+                onChange={(e) => setHomeFlag(e.target.value)}
+                sx={{ width: 90 }}
+                size="small"
+              />
+              <TextField
+                label="Equipo local"
+                value={homeTeam}
+                onChange={(e) => setHomeTeam(e.target.value)}
+                fullWidth
+                size="small"
+              />
+            </Box>
+            <Box sx={{ display: "flex", gap: 1 }}>
+              <TextField
+                label="Bandera visitante"
+                value={awayFlag}
+                onChange={(e) => setAwayFlag(e.target.value)}
+                sx={{ width: 90 }}
+                size="small"
+              />
+              <TextField
+                label="Equipo visitante"
+                value={awayTeam}
+                onChange={(e) => setAwayTeam(e.target.value)}
+                fullWidth
+                size="small"
+              />
+            </Box>
+
+            {/* Fecha */}
+            <TextField
+              label="Fecha y hora del partido"
+              type="datetime-local"
+              value={scheduledDate}
+              onChange={(e) => setScheduledDate(e.target.value)}
+              fullWidth
+              size="small"
+              InputLabelProps={{ shrink: true }}
+              helperText="El límite de predicción se calculará 24h antes automáticamente"
+            />
+
+            <Divider />
+
+            {/* Resultado */}
+            <Typography variant="subtitle2" sx={{ fontWeight: "bold" }}>
+              Resultado (opcional)
+            </Typography>
             <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
               <TextField
-                label={`${selectedMatch?.homeTeam}`}
+                label={homeTeam || "Local"}
                 type="number"
                 value={homeScore}
                 onChange={(e) => setHomeScore(e.target.value)}
                 inputProps={{ min: 0, max: 99 }}
                 fullWidth
+                size="small"
               />
-              <Box sx={{ fontSize: "1.5rem", fontWeight: "bold", flexShrink: 0 }}>
+              <Typography variant="h6" sx={{ fontWeight: "bold", flexShrink: 0 }}>
                 -
-              </Box>
+              </Typography>
               <TextField
-                label={`${selectedMatch?.awayTeam}`}
+                label={awayTeam || "Visitante"}
                 type="number"
                 value={awayScore}
                 onChange={(e) => setAwayScore(e.target.value)}
                 inputProps={{ min: 0, max: 99 }}
                 fullWidth
+                size="small"
               />
             </Box>
           </DialogContent>
@@ -203,11 +279,11 @@ export const MatchResultsLoader: React.FC = () => {
               Cancelar
             </Button>
             <Button
-              onClick={handleSaveResult}
+              onClick={handleSave}
               variant="contained"
-              disabled={isSaving || !homeScore || !awayScore}
+              disabled={isSaving || !homeTeam || !awayTeam}
             >
-              {isSaving ? <CircularProgress size={20} /> : "Guardar Resultado"}
+              {isSaving ? <CircularProgress size={20} /> : "Guardar"}
             </Button>
           </DialogActions>
         </Dialog>

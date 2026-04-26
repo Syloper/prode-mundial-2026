@@ -5,7 +5,6 @@ import CssBaseline from "@mui/material/CssBaseline";
 import { theme } from "./theme";
 import { AuthProvider } from "./contexts/AuthContext";
 import { NotificationProvider } from "./contexts/NotificationContext";
-import { BannerProvider } from "./contexts/BannerContext";
 import { PrizeProvider } from "./contexts/PrizeContext";
 import { PredictionProvider } from "./contexts/PredictionContext";
 import { CompanyProvider } from "./contexts/CompanyContext";
@@ -28,8 +27,7 @@ function App() {
         <AuthProvider>
           <NotificationProvider>
             <CompanyProvider>
-              <BannerProvider>
-                <PrizeProvider>
+              <PrizeProvider>
                   <PredictionProvider>
                     <BrowserRouter>
                       <Navbar />
@@ -58,8 +56,7 @@ function App() {
                       </Routes>
                     </BrowserRouter>
                   </PredictionProvider>
-                </PrizeProvider>
-              </BannerProvider>
+              </PrizeProvider>
             </CompanyProvider>
           </NotificationProvider>
         </AuthProvider>

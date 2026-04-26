@@ -41,6 +41,7 @@ export interface Database {
           home_score: number | null;
           away_score: number | null;
           is_finished: boolean;
+          phase: string | null;
         };
         Insert: {
           id: number;
@@ -54,11 +55,20 @@ export interface Database {
           home_score?: number | null;
           away_score?: number | null;
           is_finished?: boolean;
+          phase?: string | null;
         };
         Update: {
+          home_team?: string;
+          away_team?: string;
+          home_team_flag?: string;
+          away_team_flag?: string;
+          group_name?: string;
+          scheduled_date?: string;
+          result_deadline?: string;
           home_score?: number | null;
           away_score?: number | null;
           is_finished?: boolean;
+          phase?: string | null;
         };
         Relationships: [];
       };

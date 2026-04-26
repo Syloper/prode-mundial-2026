@@ -11,7 +11,6 @@ import { ProtectedRoute } from "../components/auth/ProtectedRoute";
 import { PrizeForm } from "../components/admin/PrizeForm";
 import { PrizeAssignment } from "../components/admin/PrizeAssignment";
 import { PrizeHistory } from "../components/admin/PrizeHistory";
-import { BannerUpload } from "../components/admin/BannerUpload";
 import { MatchResultsLoader } from "../components/admin/MatchResultsLoader";
 import { AddMatchForm } from "../components/admin/AddMatchForm";
 import { CompanyConfigComponent } from "../components/admin/CompanyConfig";
@@ -52,7 +51,6 @@ export const AdminDashboard: React.FC = () => {
             <Tab label="📜 Historial" />
             <Tab label="⚽ Resultados" />
             <Tab label="➕ Nuevo partido" />
-            <Tab label="📸 Banner" />
             <Tab label="⚙️ Configuración" />
           </Tabs>
           <Box sx={{ p: 3 }}>
@@ -75,9 +73,6 @@ export const AdminDashboard: React.FC = () => {
               <AddMatchForm />
             </TabPanel>
             <TabPanel value={tab} index={6}>
-              <BannerUpload />
-            </TabPanel>
-            <TabPanel value={tab} index={7}>
               <CompanyConfigComponent />
             </TabPanel>
           </Box>

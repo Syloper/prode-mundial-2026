@@ -1,7 +1,6 @@
 import React from "react";
 import { Container, Box, Grid, Card, CardHeader, CardContent, Typography } from "@mui/material";
 import { useMatches } from "../hooks/useMatches";
-import { Banner } from "../components/common/Banner";
 import { MatchPredictionForm } from "../components/common/MatchPredictionForm";
 import { useAuth } from "../hooks/useAuth";
 
@@ -16,8 +15,7 @@ export const GroupsPage: React.FC = () => {
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
-      <Banner />
-      <Typography variant="h4" sx={{ mb: 4, fontWeight: "bold" }}>⚽ Fase de Grupos</Typography>
+<Typography variant="h4" sx={{ mb: 4, fontWeight: "bold" }}>⚽ Fase de Grupos</Typography>
       {!user && (
         <Box sx={{ mb: 3, p: 2, backgroundColor: "#fff3e0", borderRadius: 1 }}>
           <Typography variant="body2">

@@ -178,17 +178,16 @@ export const useMatches = () => {
         resultDeadline?: Date;
       }
     ) => {
-      const update: Record<string, unknown> = {};
-      if (fields.homeTeam !== undefined) update.home_team = fields.homeTeam;
-      if (fields.awayTeam !== undefined) update.away_team = fields.awayTeam;
-      if (fields.homeTeamFlag !== undefined) update.home_team_flag = fields.homeTeamFlag;
-      if (fields.awayTeamFlag !== undefined) update.away_team_flag = fields.awayTeamFlag;
-      if (fields.scheduledDate !== undefined) update.scheduled_date = fields.scheduledDate.toISOString();
-      if (fields.resultDeadline !== undefined) update.result_deadline = fields.resultDeadline.toISOString();
-
       const { error } = await supabase
         .from("matches")
-        .update(update)
+        .update({
+          home_team: fields.homeTeam,
+          away_team: fields.awayTeam,
+          home_team_flag: fields.homeTeamFlag,
+          away_team_flag: fields.awayTeamFlag,
+          scheduled_date: fields.scheduledDate?.toISOString(),
+          result_deadline: fields.resultDeadline?.toISOString(),
+        })
         .eq("id", parseInt(matchId));
 
       if (error) throw new Error("Error al actualizar el partido");
