@@ -115,3 +115,5 @@ supabase/
 ├── schema.sql           # Tablas, RLS, triggers, función get_rankings()
 └── seed_knockout.sql    # Partidos de eliminación directa
 ```
+
+Server en railway: prode-mundial-2026-syloper.up.railway.app
