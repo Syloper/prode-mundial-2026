@@ -75,10 +75,22 @@ export const ProfilePage: React.FC = () => {
   };
 
   const handleChangePassword = async () => {
+    if (!currentPassword) {
+      addNotification("Ingresá tu contraseña actual", "error"); return;
+    }
     if (!newPassword || newPassword.length < 8) {
-      addNotification("La contraseña debe tener al menos 8 caracteres", "error"); return;
+      addNotification("La contraseña nueva debe tener al menos 8 caracteres", "error"); return;
     }
     setSavingPassword(true);
+    // Verificar contraseña actual antes de actualizar
+    const { error: authError } = await supabase.auth.signInWithPassword({
+      email: user!.email,
+      password: currentPassword,
+    });
+    if (authError) {
+      setSavingPassword(false);
+      addNotification("La contraseña actual es incorrecta", "error"); return;
+    }
     const { error } = await supabase.auth.updateUser({ password: newPassword });
     setSavingPassword(false);
     if (error) { addNotification(error.message, "error"); return; }

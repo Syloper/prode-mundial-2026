@@ -70,8 +70,22 @@ function App() {
                             </ProtectedRoute>
                           }
                         />
-                        <Route path="/data-entry" element={<DataEntryDashboard />} />
-                        <Route path="/admin" element={<AdminDashboard />} />
+                        <Route
+                          path="/data-entry"
+                          element={
+                            <ProtectedRoute allowedRoles={["admin", "data_entry"]}>
+                              <DataEntryDashboard />
+                            </ProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/admin"
+                          element={
+                            <ProtectedRoute adminOnly>
+                              <AdminDashboard />
+                            </ProtectedRoute>
+                          }
+                        />
                         <Route path="*" element={<NotFoundPage />} />
                       </Routes>
                     </BrowserRouter>

@@ -180,9 +180,9 @@ alter table public.prizes enable row level security;
 alter table public.prize_assignments enable row level security;
 alter table public.app_config enable row level security;
 
--- Profiles: cualquier usuario autenticado puede leer; solo propio puede editar
+-- Profiles: cada usuario ve solo su propio perfil; admins ven todos
 create policy "profiles_select" on public.profiles
-  for select using (auth.uid() is not null);
+  for select using (auth.uid() = id or public.is_admin());
 
 create policy "profiles_update_own" on public.profiles
   for update using (id = auth.uid());

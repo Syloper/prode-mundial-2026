@@ -16,6 +16,9 @@ begin
   if target_id = auth.uid() then
     raise exception 'No podés eliminarte a vos mismo';
   end if;
+  if exists (select 1 from public.profiles where id = target_id and role = 'admin') then
+    raise exception 'No podés eliminar a otro administrador';
+  end if;
   delete from auth.users where id = target_id;
 end;
 $$;

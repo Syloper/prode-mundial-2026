@@ -1,5 +1,5 @@
--- Función accesible solo para admins que devuelve perfiles con email
 drop function if exists public.get_users_with_email();
+
 create or replace function public.get_users_with_email()
 returns table (
   id uuid,
@@ -10,20 +10,26 @@ returns table (
   email text,
   is_active boolean
 )
-language sql
+language plpgsql
 security definer
 stable
 as $$
-  select
-    p.id,
-    p.name,
-    p.dni,
-    p.role::text,
-    p.created_at,
-    u.email,
-    p.is_active
-  from public.profiles p
-  join auth.users u on u.id = p.id
-  where public.is_admin()
-  order by p.created_at;
+begin
+  if not public.is_admin() then
+    raise exception 'Acceso denegado';
+  end if;
+
+  return query
+    select
+      p.id,
+      p.name,
+      p.dni,
+      p.role::text,
+      p.created_at,
+      u.email,
+      p.is_active
+    from public.profiles p
+    join auth.users u on u.id = p.id
+    order by p.created_at;
+end;
 $$;
