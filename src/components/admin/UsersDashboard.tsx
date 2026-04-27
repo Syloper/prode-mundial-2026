@@ -66,7 +66,7 @@ export const UsersDashboard: React.FC = () => {
       setIsLoading(true);
       const { data, error: err } = await supabase.rpc("get_users_with_email");
       if (err) {
-        setError("Error al cargar usuarios");
+        setError(err.message);
       } else {
         setUsers(data ?? []);
       }
