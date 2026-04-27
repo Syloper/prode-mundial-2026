@@ -4,6 +4,7 @@ import {
 } from "@mui/material";
 import { Match } from "../../types";
 import { calculateGroupStandings } from "../../utils/standingsHelpers";
+import { FlagImg } from "./FlagImg";
 
 interface Props {
   group: string;
@@ -54,7 +55,7 @@ export const GroupStandings: React.FC<Props> = ({ group, matches }) => {
                 {idx + 1}
               </TableCell>
               <TableCell sx={{ py: 0.5, fontSize: "0.75rem" }}>
-                {s.flag} {s.team}
+                <FlagImg flag={s.flag} /> {s.team}
               </TableCell>
               <TableCell align="center" sx={{ py: 0.5, fontSize: "0.75rem" }}>{hasResults ? s.played : "-"}</TableCell>
               <TableCell align="center" sx={{ py: 0.5, fontSize: "0.75rem" }}>{hasResults ? s.won : "-"}</TableCell>

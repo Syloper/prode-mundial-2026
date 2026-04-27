@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { FlagImg } from "../common/FlagImg";
 import {
   Box,
   Card,
@@ -185,7 +186,7 @@ export const MatchResultsLoader: React.FC = () => {
                         }
                       </TableCell>
                       <TableCell>
-                        {match.homeTeamFlag} {match.homeTeam} vs {match.awayTeam} {match.awayTeamFlag}
+                        <FlagImg flag={match.homeTeamFlag} /> {match.homeTeam} vs {match.awayTeam} <FlagImg flag={match.awayTeamFlag} />
                       </TableCell>
                       <TableCell sx={{ fontWeight: "bold" }}>
                         {match.isFinished ? `${match.homeScore} - ${match.awayScore}` : "-"}

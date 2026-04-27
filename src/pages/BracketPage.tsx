@@ -2,6 +2,7 @@ import React from "react";
 import { Container, Typography, Box, Paper, Chip, CircularProgress } from "@mui/material";
 import { useMatches } from "../hooks/useMatches";
 import { Match } from "../types";
+import { FlagImg } from "../components/common/FlagImg";
 
 const ROUNDS = [
   { label: "16avos", ids: [73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88] },
@@ -36,7 +37,7 @@ const MatchBox: React.FC<MatchBoxProps> = ({ match, highlight }) => {
       {/* Home */}
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 0.25 }}>
         <Typography variant="caption" sx={{ fontWeight: match.isFinished && (match.homeScore ?? 0) > (match.awayScore ?? 0) ? 700 : 400, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-          {match.homeTeamFlag} {match.homeTeam}
+          <FlagImg flag={match.homeTeamFlag} /> {match.homeTeam}
         </Typography>
         {match.isFinished && (
           <Typography variant="caption" sx={{ fontWeight: 700, ml: 0.5, color: (match.homeScore ?? 0) > (match.awayScore ?? 0) ? "primary.main" : "text.secondary" }}>
@@ -47,7 +48,7 @@ const MatchBox: React.FC<MatchBoxProps> = ({ match, highlight }) => {
       {/* Away */}
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <Typography variant="caption" sx={{ fontWeight: match.isFinished && (match.awayScore ?? 0) > (match.homeScore ?? 0) ? 700 : 400, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-          {match.awayTeamFlag} {match.awayTeam}
+          <FlagImg flag={match.awayTeamFlag} /> {match.awayTeam}
         </Typography>
         {match.isFinished && (
           <Typography variant="caption" sx={{ fontWeight: 700, ml: 0.5, color: (match.awayScore ?? 0) > (match.homeScore ?? 0) ? "primary.main" : "text.secondary" }}>

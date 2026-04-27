@@ -9,6 +9,7 @@ import { useAuth } from "../../hooks/useAuth";
 import { useNotification } from "../../hooks/useNotification";
 import { formatDate } from "../../utils/dateHelpers";
 import { supabase } from "../../lib/supabase";
+import { FlagImg } from "./FlagImg";
 
 interface OtherPrediction {
   userName: string;
@@ -107,11 +108,11 @@ export const MatchPredictionForm: React.FC<MatchPredictionFormProps> = ({ match 
         <Box sx={{ backgroundColor: "#E6F9F1", p: 2, borderRadius: 1, mb: 2 }}>
           <Typography variant="subtitle2" sx={{ fontWeight: "bold", mb: 1 }}>Tu predicción:</Typography>
           <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 2 }}>
-            <Typography variant="h6">{match.homeTeamFlag} {match.homeTeam}</Typography>
+            <Typography variant="h6"><FlagImg flag={match.homeTeamFlag} /> {match.homeTeam}</Typography>
             <Typography variant="h5" sx={{ fontWeight: "bold", color: "primary.main" }}>
               {prediction.homeScore} - {prediction.awayScore}
             </Typography>
-            <Typography variant="h6">{match.awayTeam} {match.awayTeamFlag}</Typography>
+            <Typography variant="h6">{match.awayTeam} <FlagImg flag={match.awayTeamFlag} /></Typography>
           </Box>
         </Box>
       )}
@@ -121,7 +122,7 @@ export const MatchPredictionForm: React.FC<MatchPredictionFormProps> = ({ match 
         <>
           <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 2, mb: 2 }}>
             <Box sx={{ textAlign: "right", flex: 1 }}>
-              <Typography sx={{ mb: 1 }}>{match.homeTeamFlag} {match.homeTeam}</Typography>
+              <Typography sx={{ mb: 1 }}><FlagImg flag={match.homeTeamFlag} /> {match.homeTeam}</Typography>
               <TextField
                 type="text"
                 inputProps={{ inputMode: "numeric", maxLength: 2 }}
@@ -135,7 +136,7 @@ export const MatchPredictionForm: React.FC<MatchPredictionFormProps> = ({ match 
             </Box>
             <Typography variant="h6" sx={{ fontWeight: "bold" }}>-</Typography>
             <Box sx={{ textAlign: "left", flex: 1 }}>
-              <Typography sx={{ mb: 1 }}>{match.awayTeam} {match.awayTeamFlag}</Typography>
+              <Typography sx={{ mb: 1 }}>{match.awayTeam} <FlagImg flag={match.awayTeamFlag} /></Typography>
               <TextField
                 type="text"
                 inputProps={{ inputMode: "numeric", maxLength: 2 }}
@@ -204,7 +205,7 @@ export const MatchPredictionForm: React.FC<MatchPredictionFormProps> = ({ match 
                     <ListItemText
                       primary={
                         <Typography variant="caption">
-                          <strong>{o.userName}</strong>: {match.homeTeamFlag} {o.homeScore} - {o.awayScore} {match.awayTeamFlag}
+                          <strong>{o.userName}</strong>: <FlagImg flag={match.homeTeamFlag} /> {o.homeScore} - {o.awayScore} <FlagImg flag={match.awayTeamFlag} />
                         </Typography>
                       }
                     />
