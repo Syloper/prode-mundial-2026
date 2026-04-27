@@ -33,9 +33,9 @@ export const MatchPredictionForm: React.FC<MatchPredictionFormProps> = ({ match 
   const [loadingOthers, setLoadingOthers] = useState(false);
 
   const prediction = user ? getPrediction(match.id, user.id) : null;
-  const isLocked = user ? isPredictionLocked(match.resultDeadline, match.id, user.id) : true;
+  const isLocked = !user || match.isFinished || isPredictionLocked(match.resultDeadline, match.id, user.id);
   const canMakePrediction = !!user && !isLocked && canPredict(match.resultDeadline);
-  const deadlinePassed = new Date() > new Date(match.resultDeadline);
+  const deadlinePassed = match.isFinished || new Date() > new Date(match.resultDeadline);
 
   const hoursUntilDeadline =
     (new Date(match.resultDeadline).getTime() - Date.now()) / (1000 * 60 * 60);
@@ -150,7 +150,11 @@ export const MatchPredictionForm: React.FC<MatchPredictionFormProps> = ({ match 
             </Box>
           </Box>
           {isLocked ? (
-            <Alert severity="error">No se puede predecir: el plazo venció 24 horas antes del partido</Alert>
+            <Alert severity="error">
+              {match.isFinished
+                ? "El partido ya tiene resultado — no se pueden cargar predicciones"
+                : "No se puede predecir: el plazo venció 24 horas antes del partido"}
+            </Alert>
           ) : (
             <Button variant="contained" fullWidth onClick={handleSavePrediction}
               disabled={!homeScore || !awayScore || isSaving || !canMakePrediction}>
