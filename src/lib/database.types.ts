@@ -213,6 +213,10 @@ export interface Database {
         Args: { target_id: string };
         Returns: void;
       };
+      get_match_predictions: {
+        Args: { p_match_id: number };
+        Returns: Array<{ user_name: string; home_score: number; away_score: number }>;
+      };
     };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;

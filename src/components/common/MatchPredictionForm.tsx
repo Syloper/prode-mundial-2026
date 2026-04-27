@@ -65,24 +65,17 @@ export const MatchPredictionForm: React.FC<MatchPredictionFormProps> = ({ match 
     setLoadingOthers(true);
     setShowOthers(true);
     const { data } = await supabase
-      .from("predictions")
-      .select("user_id, home_score, away_score, profiles(name)")
-      .eq("match_id", parseInt(match.id));
+      .rpc("get_match_predictions", { p_match_id: parseInt(match.id) });
 
-    if (data) {
-      setOthers(
-        (data as any[])
-          .filter((r) => r.profiles && (!user || r.user_id !== user.id))
-          .map((r) => ({
-            userName: r.profiles?.name ?? "Usuario",
-            homeScore: r.home_score,
-            awayScore: r.away_score,
-          }))
-          .sort((a, b) => a.userName.localeCompare(b.userName))
-      );
-    }
+    setOthers(
+      (data ?? []).map((r) => ({
+        userName: r.user_name,
+        homeScore: r.home_score,
+        awayScore: r.away_score,
+      }))
+    );
     setLoadingOthers(false);
-  }, [showOthers, match.id, user]);
+  }, [showOthers, match.id]);
 
   return (
     <Box sx={{
