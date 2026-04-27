@@ -1,4 +1,5 @@
 -- Función accesible solo para admins que devuelve perfiles con email
+drop function if exists public.get_users_with_email();
 create or replace function public.get_users_with_email()
 returns table (
   id uuid,
@@ -6,7 +7,8 @@ returns table (
   dni text,
   role text,
   created_at timestamptz,
-  email text
+  email text,
+  is_active boolean
 )
 language sql
 security definer
@@ -18,7 +20,8 @@ as $$
     p.dni,
     p.role::text,
     p.created_at,
-    u.email
+    u.email,
+    p.is_active
   from public.profiles p
   join auth.users u on u.id = p.id
   where public.is_admin()

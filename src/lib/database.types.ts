@@ -11,6 +11,7 @@ export interface Database {
           role: "admin" | "user" | "data_entry";
           company_code: string | null;
           created_at: string;
+          is_active: boolean;
         };
         Insert: {
           id: string;
@@ -19,12 +20,14 @@ export interface Database {
           role?: "admin" | "user" | "data_entry";
           company_code?: string | null;
           created_at?: string;
+          is_active?: boolean;
         };
         Update: {
           name?: string;
           dni?: string;
           role?: "admin" | "user" | "data_entry";
           company_code?: string | null;
+          is_active?: boolean;
         };
         Relationships: [];
       };
@@ -203,7 +206,12 @@ export interface Database {
           role: "admin" | "user" | "data_entry";
           created_at: string;
           email: string;
+          is_active: boolean;
         }>;
+      };
+      admin_delete_user: {
+        Args: { target_id: string };
+        Returns: void;
       };
     };
     Enums: Record<string, never>;

@@ -23,6 +23,7 @@ async function buildUserFromSession(session: Session): Promise<User | null> {
     .single();
 
   if (error || !profile) return null;
+  if (profile.is_active === false) return null;
 
   return {
     id: session.user.id,
