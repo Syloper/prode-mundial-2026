@@ -194,6 +194,17 @@ export interface Database {
         Args: Record<string, never>;
         Returns: boolean;
       };
+      get_users_with_email: {
+        Args: Record<string, never>;
+        Returns: Array<{
+          id: string;
+          name: string;
+          dni: string;
+          role: "admin" | "user" | "data_entry";
+          created_at: string;
+          email: string;
+        }>;
+      };
     };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;

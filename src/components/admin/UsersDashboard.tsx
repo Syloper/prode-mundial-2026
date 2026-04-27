@@ -32,6 +32,7 @@ interface ProfileRow {
   dni: string;
   role: UserRole;
   created_at: string;
+  email: string;
 }
 
 export const UsersDashboard: React.FC = () => {
@@ -49,9 +50,7 @@ export const UsersDashboard: React.FC = () => {
     const load = async () => {
       setIsLoading(true);
       const { data, error: err } = await supabase
-        .from("profiles")
-        .select("*")
-        .order("created_at");
+        .rpc("get_users_with_email");
 
       if (err) {
         setError("Error al cargar usuarios");
@@ -68,7 +67,8 @@ export const UsersDashboard: React.FC = () => {
     return (
       !search ||
       u.name.toLowerCase().includes(term) ||
-      u.dni.toLowerCase().includes(term)
+      u.dni.toLowerCase().includes(term) ||
+      u.email.toLowerCase().includes(term)
     );
   });
 
@@ -114,7 +114,7 @@ export const UsersDashboard: React.FC = () => {
       </Typography>
       <Box sx={{ mb: 3 }}>
         <TextField
-          label="Buscar por nombre o DNI"
+          label="Buscar por nombre, email o DNI"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           size="small"
@@ -126,6 +126,7 @@ export const UsersDashboard: React.FC = () => {
           <TableHead>
             <TableRow sx={{ backgroundColor: "#f5f5f5" }}>
               <TableCell><strong>Nombre</strong></TableCell>
+              <TableCell><strong>Email</strong></TableCell>
               <TableCell><strong>DNI</strong></TableCell>
               <TableCell><strong>Rol</strong></TableCell>
               <TableCell><strong>Registrado</strong></TableCell>
@@ -137,6 +138,7 @@ export const UsersDashboard: React.FC = () => {
               .map((u) => (
                 <TableRow key={u.id} hover>
                   <TableCell>{u.name}</TableCell>
+                  <TableCell sx={{ color: "text.secondary", fontSize: "0.8rem" }}>{u.email}</TableCell>
                   <TableCell>{u.dni || "-"}</TableCell>
                   <TableCell>
                     <Select
@@ -157,7 +159,7 @@ export const UsersDashboard: React.FC = () => {
               ))}
             {filtered.length === 0 && (
               <TableRow>
-                <TableCell colSpan={4} align="center">
+                <TableCell colSpan={5} align="center">
                   No se encontraron usuarios
                 </TableCell>
               </TableRow>
