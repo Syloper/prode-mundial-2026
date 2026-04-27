@@ -30,9 +30,7 @@ async function buildUserFromSession(session: Session): Promise<User | null> {
     name: profile.name,
     dni: profile.dni,
     role: profile.role,
-    companyCode: profile.company_code ?? undefined,
     createdAt: profile.created_at,
-    hasCompanyCode: !!profile.company_code,
   };
 }
 
@@ -91,7 +89,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         data: {
           name: data.name,
           dni: data.dni,
-          company_code: data.companyCode || null,
         },
       },
     });

@@ -10,10 +10,7 @@ import {
   TableRow,
   TextField,
   Typography,
-  Chip,
   TablePagination,
-  FormControl,
-  InputLabel,
   Select,
   MenuItem,
   CircularProgress,
@@ -34,9 +31,7 @@ interface ProfileRow {
   name: string;
   dni: string;
   role: UserRole;
-  company_code: string | null;
   created_at: string;
-  email?: string;
 }
 
 export const UsersDashboard: React.FC = () => {
@@ -44,7 +39,6 @@ export const UsersDashboard: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
-  const [filterCompany, setFilterCompany] = useState("all");
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [pendingRole, setPendingRole] = useState<{ userId: string; name: string; newRole: UserRole } | null>(null);
@@ -71,15 +65,11 @@ export const UsersDashboard: React.FC = () => {
 
   const filtered = users.filter((u) => {
     const term = search.toLowerCase();
-    const matchSearch =
+    return (
       !search ||
       u.name.toLowerCase().includes(term) ||
-      u.dni.toLowerCase().includes(term);
-    const matchCompany =
-      filterCompany === "all" ||
-      (filterCompany === "yes" && !!u.company_code) ||
-      (filterCompany === "no" && !u.company_code);
-    return matchSearch && matchCompany;
+      u.dni.toLowerCase().includes(term)
+    );
   });
 
   const handleRoleChange = (userId: string, userName: string, newRole: UserRole) => {
@@ -122,7 +112,7 @@ export const UsersDashboard: React.FC = () => {
       <Typography variant="h6" sx={{ mb: 2, fontWeight: "bold" }}>
         Usuarios Registrados
       </Typography>
-      <Box sx={{ display: "flex", gap: 2, mb: 3, flexWrap: "wrap" }}>
+      <Box sx={{ mb: 3 }}>
         <TextField
           label="Buscar por nombre o DNI"
           value={search}
@@ -130,18 +120,6 @@ export const UsersDashboard: React.FC = () => {
           size="small"
           sx={{ minWidth: 280 }}
         />
-        <FormControl size="small" sx={{ minWidth: 180 }}>
-          <InputLabel>Código empresa</InputLabel>
-          <Select
-            value={filterCompany}
-            label="Código empresa"
-            onChange={(e) => setFilterCompany(e.target.value)}
-          >
-            <MenuItem value="all">Todos</MenuItem>
-            <MenuItem value="yes">Con código</MenuItem>
-            <MenuItem value="no">Sin código</MenuItem>
-          </Select>
-        </FormControl>
       </Box>
       <TableContainer component={Paper}>
         <Table size="small">
@@ -150,7 +128,6 @@ export const UsersDashboard: React.FC = () => {
               <TableCell><strong>Nombre</strong></TableCell>
               <TableCell><strong>DNI</strong></TableCell>
               <TableCell><strong>Rol</strong></TableCell>
-              <TableCell><strong>Empresa</strong></TableCell>
               <TableCell><strong>Registrado</strong></TableCell>
             </TableRow>
           </TableHead>
@@ -174,24 +151,13 @@ export const UsersDashboard: React.FC = () => {
                     </Select>
                   </TableCell>
                   <TableCell>
-                    {u.company_code ? (
-                      <Chip
-                        label={u.company_code}
-                        color="success"
-                        size="small"
-                      />
-                    ) : (
-                      <Chip label="Sin código" variant="outlined" size="small" />
-                    )}
-                  </TableCell>
-                  <TableCell>
                     {new Date(u.created_at).toLocaleDateString("es-AR")}
                   </TableCell>
                 </TableRow>
               ))}
             {filtered.length === 0 && (
               <TableRow>
-                <TableCell colSpan={5} align="center">
+                <TableCell colSpan={4} align="center">
                   No se encontraron usuarios
                 </TableCell>
               </TableRow>

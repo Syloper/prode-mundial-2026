@@ -6,9 +6,7 @@ export interface User {
   email: string;
   dni: string;
   role: UserRole;
-  companyCode?: string;
   createdAt: string;
-  hasCompanyCode: boolean;
 }
 
 export interface RegisterData {
@@ -16,7 +14,6 @@ export interface RegisterData {
   email: string;
   dni: string;
   password: string;
-  companyCode?: string;
 }
 
 export interface Match {

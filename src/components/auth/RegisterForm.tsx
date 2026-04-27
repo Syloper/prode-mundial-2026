@@ -22,7 +22,6 @@ export const RegisterForm: React.FC = () => {
         email: data.email,
         dni: data.dni,
         password: data.password,
-        companyCode: "SYLOPER",
       });
       navigate("/");
     } catch {

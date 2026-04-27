@@ -23,7 +23,6 @@ export const registerSchema = z.object({
     .max(72, "Máximo 72 caracteres")
     .regex(/[A-Z]/, "Debe incluir al menos una mayúscula")
     .regex(/[0-9]/, "Debe incluir al menos un número"),
-  companyCode: z.string().max(50, "Código muy largo").optional(),
 });
 
 export const prizeSchema = z.object({
