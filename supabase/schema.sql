@@ -15,7 +15,7 @@ create table if not exists public.profiles (
   id          uuid references auth.users(id) on delete cascade primary key,
   name        text not null,
   dni         text not null,
-  role        text not null default 'user' check (role in ('admin', 'user')),
+  role        text not null default 'user' check (role in ('admin', 'user', 'data_entry')),
   company_code text,
   created_at  timestamptz not null default now()
 );
@@ -120,6 +120,17 @@ as $$
   );
 $$;
 
+create or replace function public.can_load_results()
+returns boolean
+language sql
+security definer set search_path = public
+as $$
+  select exists (
+    select 1 from public.profiles
+    where id = auth.uid() and role in ('admin', 'data_entry')
+  );
+$$;
+
 -- Función: ranking global (calcula puntos de todos los usuarios)
 create or replace function public.get_rankings()
 returns table (
@@ -176,12 +187,15 @@ create policy "profiles_select" on public.profiles
 create policy "profiles_update_own" on public.profiles
   for update using (id = auth.uid());
 
+create policy "profiles_update_admin" on public.profiles
+  for update using (public.is_admin());
+
 -- Matches: lectura pública; solo admins pueden actualizar
 create policy "matches_select" on public.matches
   for select using (true);
 
-create policy "matches_update_admin" on public.matches
-  for update using (public.is_admin());
+create policy "matches_update_results" on public.matches
+  for update using (public.can_load_results());
 
 create policy "matches_insert_admin" on public.matches
   for insert with check (public.is_admin());

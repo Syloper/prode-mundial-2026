@@ -8,7 +8,7 @@ export interface Database {
           id: string;
           name: string;
           dni: string;
-          role: "admin" | "user";
+          role: "admin" | "user" | "data_entry";
           company_code: string | null;
           created_at: string;
         };
@@ -16,14 +16,14 @@ export interface Database {
           id: string;
           name: string;
           dni: string;
-          role?: "admin" | "user";
+          role?: "admin" | "user" | "data_entry";
           company_code?: string | null;
           created_at?: string;
         };
         Update: {
           name?: string;
           dni?: string;
-          role?: "admin" | "user";
+          role?: "admin" | "user" | "data_entry";
           company_code?: string | null;
         };
         Relationships: [];

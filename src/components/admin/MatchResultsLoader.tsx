@@ -132,8 +132,8 @@ export const MatchResultsLoader: React.FC = () => {
     }
   };
 
-  if (user?.role !== "admin") {
-    return <Alert severity="error">Acceso restringido a administradores</Alert>;
+  if (!user || !["admin", "data_entry"].includes(user.role)) {
+    return <Alert severity="error">Acceso restringido</Alert>;
   }
 
   const pendingMatches = matches.filter((m) => !m.isFinished);

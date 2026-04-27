@@ -18,14 +18,22 @@ import {
   MenuItem,
   CircularProgress,
   Alert,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
 } from "@mui/material";
 import { supabase } from "../../lib/supabase";
+import { useNotification } from "../../hooks/useNotification";
+
+type UserRole = "admin" | "user" | "data_entry";
 
 interface ProfileRow {
   id: string;
   name: string;
   dni: string;
-  role: "admin" | "user";
+  role: UserRole;
   company_code: string | null;
   created_at: string;
   email?: string;
@@ -39,6 +47,9 @@ export const UsersDashboard: React.FC = () => {
   const [filterCompany, setFilterCompany] = useState("all");
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [pendingRole, setPendingRole] = useState<{ userId: string; name: string; newRole: UserRole } | null>(null);
+  const [isSavingRole, setIsSavingRole] = useState(false);
+  const { addNotification } = useNotification();
 
   useEffect(() => {
     const load = async () => {
@@ -70,6 +81,29 @@ export const UsersDashboard: React.FC = () => {
       (filterCompany === "no" && !u.company_code);
     return matchSearch && matchCompany;
   });
+
+  const handleRoleChange = (userId: string, userName: string, newRole: UserRole) => {
+    setPendingRole({ userId, name: userName, newRole });
+  };
+
+  const confirmRoleChange = async () => {
+    if (!pendingRole) return;
+    setIsSavingRole(true);
+    const { error: err } = await supabase
+      .from("profiles")
+      .update({ role: pendingRole.newRole })
+      .eq("id", pendingRole.userId);
+    if (err) {
+      addNotification("Error al cambiar el rol", "error");
+    } else {
+      setUsers((prev) =>
+        prev.map((u) => u.id === pendingRole.userId ? { ...u, role: pendingRole.newRole } : u)
+      );
+      addNotification("Rol actualizado correctamente", "success");
+    }
+    setIsSavingRole(false);
+    setPendingRole(null);
+  };
 
   if (isLoading) {
     return (
@@ -128,11 +162,16 @@ export const UsersDashboard: React.FC = () => {
                   <TableCell>{u.name}</TableCell>
                   <TableCell>{u.dni || "-"}</TableCell>
                   <TableCell>
-                    <Chip
-                      label={u.role === "admin" ? "Admin" : "Usuario"}
-                      color={u.role === "admin" ? "secondary" : "default"}
+                    <Select
+                      value={u.role}
                       size="small"
-                    />
+                      onChange={(e) => handleRoleChange(u.id, u.name, e.target.value as UserRole)}
+                      sx={{ fontSize: "0.75rem", minWidth: 110 }}
+                    >
+                      <MenuItem value="user">Usuario</MenuItem>
+                      <MenuItem value="data_entry">Data Entry</MenuItem>
+                      <MenuItem value="admin">Admin</MenuItem>
+                    </Select>
                   </TableCell>
                   <TableCell>
                     {u.company_code ? (
@@ -173,6 +212,29 @@ export const UsersDashboard: React.FC = () => {
         rowsPerPageOptions={[5, 10, 25]}
         labelRowsPerPage="Filas:"
       />
+
+      <Dialog open={!!pendingRole} onClose={() => setPendingRole(null)}>
+        <DialogTitle>Cambiar rol</DialogTitle>
+        <DialogContent>
+          <Typography>
+            ¿Cambiar el rol de <strong>{pendingRole?.name}</strong> a{" "}
+            <strong>
+              {pendingRole?.newRole === "admin" ? "Admin" : pendingRole?.newRole === "data_entry" ? "Data Entry" : "Usuario"}
+            </strong>?
+          </Typography>
+          {pendingRole?.newRole === "admin" && (
+            <Alert severity="warning" sx={{ mt: 1 }}>
+              Este usuario tendrá acceso completo al panel de administración.
+            </Alert>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setPendingRole(null)} disabled={isSavingRole}>Cancelar</Button>
+          <Button onClick={confirmRoleChange} variant="contained" disabled={isSavingRole}>
+            {isSavingRole ? <CircularProgress size={20} /> : "Confirmar"}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

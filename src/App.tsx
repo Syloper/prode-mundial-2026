@@ -19,6 +19,7 @@ import { PodiumPage } from "./pages/PodiumPage";
 import { AdminDashboard } from "./pages/AdminDashboard";
 import { ProfilePage } from "./pages/ProfilePage";
 import { BracketPage } from "./pages/BracketPage";
+import { DataEntryDashboard } from "./pages/DataEntryDashboard";
 import { NotFoundPage } from "./pages/NotFoundPage";
 
 function App() {
@@ -69,6 +70,7 @@ function App() {
                             </ProtectedRoute>
                           }
                         />
+                        <Route path="/data-entry" element={<DataEntryDashboard />} />
                         <Route path="/admin" element={<AdminDashboard />} />
                         <Route path="*" element={<NotFoundPage />} />
                       </Routes>
