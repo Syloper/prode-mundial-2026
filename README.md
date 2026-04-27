@@ -117,3 +117,4 @@ supabase/
 ```
 
 Server en railway: prode-mundial-2026-syloper.up.railway.app
+
