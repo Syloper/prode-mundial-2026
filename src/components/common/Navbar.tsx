@@ -59,8 +59,14 @@ export const Navbar: React.FC = () => {
             <Button color="inherit" component={RouterLink} to="/" size="small">
               Grupos
             </Button>
+            <Button color="inherit" component={RouterLink} to="/bracket" size="small">
+              Bracket
+            </Button>
             <Button color="inherit" component={RouterLink} to="/podium" size="small">
               Ranking
+            </Button>
+            <Button color="inherit" component={RouterLink} to="/profile" size="small">
+              Mi perfil
             </Button>
             {user.role === "admin" && (
               <Button color="inherit" component={RouterLink} to="/admin" size="small">

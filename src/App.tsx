@@ -17,6 +17,8 @@ import { RegisterPage } from "./pages/RegisterPage";
 import { GroupsPage } from "./pages/GroupsPage";
 import { PodiumPage } from "./pages/PodiumPage";
 import { AdminDashboard } from "./pages/AdminDashboard";
+import { ProfilePage } from "./pages/ProfilePage";
+import { BracketPage } from "./pages/BracketPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
 
 function App() {
@@ -48,6 +50,22 @@ function App() {
                           element={
                             <ProtectedRoute>
                               <PodiumPage />
+                            </ProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/bracket"
+                          element={
+                            <ProtectedRoute>
+                              <BracketPage />
+                            </ProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/profile"
+                          element={
+                            <ProtectedRoute>
+                              <ProfilePage />
                             </ProtectedRoute>
                           }
                         />

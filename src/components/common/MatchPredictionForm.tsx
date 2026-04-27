@@ -1,211 +1,149 @@
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import {
-  Box,
-  TextField,
-  Typography,
-  Chip,
-  Button,
-  Alert,
-  CircularProgress,
+  Box, TextField, Typography, Chip, Button, Alert, CircularProgress,
+  Collapse, List, ListItem, ListItemText, Divider,
 } from "@mui/material";
 import { Match } from "../../types";
 import { usePrediction } from "../../hooks/usePrediction";
 import { useAuth } from "../../hooks/useAuth";
 import { useNotification } from "../../hooks/useNotification";
 import { formatDate } from "../../utils/dateHelpers";
+import { supabase } from "../../lib/supabase";
+
+interface OtherPrediction {
+  userName: string;
+  homeScore: number;
+  awayScore: number;
+}
 
 interface MatchPredictionFormProps {
   match: Match;
 }
 
-export const MatchPredictionForm: React.FC<MatchPredictionFormProps> = ({
-  match,
-}) => {
-  const { getPrediction, savePrediction, isPredictionLocked, canPredict } =
-    usePrediction();
+export const MatchPredictionForm: React.FC<MatchPredictionFormProps> = ({ match }) => {
+  const { getPrediction, savePrediction, isPredictionLocked, canPredict } = usePrediction();
   const { user } = useAuth();
   const { addNotification } = useNotification();
   const [homeScore, setHomeScore] = useState("");
   const [awayScore, setAwayScore] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [showOthers, setShowOthers] = useState(false);
+  const [others, setOthers] = useState<OtherPrediction[]>([]);
+  const [loadingOthers, setLoadingOthers] = useState(false);
 
   const prediction = user ? getPrediction(match.id, user.id) : null;
-  const isLocked = user
-    ? isPredictionLocked(match.resultDeadline, match.id, user.id)
-    : true;
+  const isLocked = user ? isPredictionLocked(match.resultDeadline, match.id, user.id) : true;
   const canMakePrediction = !!user && !isLocked && canPredict(match.resultDeadline);
+  const deadlinePassed = new Date() > new Date(match.resultDeadline);
 
   const hoursUntilDeadline =
     (new Date(match.resultDeadline).getTime() - Date.now()) / (1000 * 60 * 60);
 
   const handleSavePrediction = async () => {
-    if (!user) {
-      addNotification("Debés estar logueado para hacer predicciones", "error");
-      return;
-    }
-
-    if (!homeScore || !awayScore) {
-      addNotification("Completá ambos campos de puntuación", "warning");
-      return;
-    }
-
+    if (!user) { addNotification("Debés estar logueado para hacer predicciones", "error"); return; }
+    if (!homeScore || !awayScore) { addNotification("Completá ambos campos de puntuación", "warning"); return; }
     const home = parseInt(homeScore);
     const away = parseInt(awayScore);
-
     if (isNaN(home) || isNaN(away) || home < 0 || away < 0 || home > 99 || away > 99) {
-      addNotification("Ingresá números válidos entre 0 y 99", "error");
-      return;
+      addNotification("Ingresá números válidos entre 0 y 99", "error"); return;
     }
-
     setIsSaving(true);
     try {
       await savePrediction(match.id, home, away, user.id);
       addNotification("Predicción guardada correctamente", "success");
-      setHomeScore("");
-      setAwayScore("");
+      setHomeScore(""); setAwayScore("");
     } catch (err) {
-      const message =
-        err instanceof Error ? err.message : "Error al guardar la predicción";
-      addNotification(message, "error");
+      addNotification(err instanceof Error ? err.message : "Error al guardar la predicción", "error");
     } finally {
       setIsSaving(false);
     }
   };
 
+  const handleToggleOthers = useCallback(async () => {
+    if (showOthers) { setShowOthers(false); return; }
+    setLoadingOthers(true);
+    setShowOthers(true);
+    const { data } = await supabase
+      .from("predictions")
+      .select("user_id, home_score, away_score, profiles(name)")
+      .eq("match_id", parseInt(match.id));
+
+    if (data) {
+      setOthers(
+        (data as any[])
+          .filter((r) => r.profiles && (!user || r.user_id !== user.id))
+          .map((r) => ({
+            userName: r.profiles?.name ?? "Usuario",
+            homeScore: r.home_score,
+            awayScore: r.away_score,
+          }))
+          .sort((a, b) => a.userName.localeCompare(b.userName))
+      );
+    }
+    setLoadingOthers(false);
+  }, [showOthers, match.id, user]);
+
   return (
-    <Box
-      sx={{
-        p: 2,
-        mb: 2,
-        border: "1px solid #eee",
-        borderRadius: 1,
-        backgroundColor: isLocked && prediction ? "background.default" : "background.paper",
-      }}
-    >
-      {/* Cabecera: fecha y estado */}
-      <Box
-        sx={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          mb: 2,
-          flexWrap: "wrap",
-          gap: 1,
-        }}
-      >
+    <Box sx={{
+      p: 2, mb: 2, border: "1px solid #eee", borderRadius: 1,
+      backgroundColor: isLocked && prediction ? "background.default" : "background.paper",
+    }}>
+      {/* Cabecera */}
+      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2, flexWrap: "wrap", gap: 1 }}>
         <Typography variant="caption" sx={{ color: "#666" }}>
           {formatDate(new Date(match.scheduledDate))}
         </Typography>
         <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap" }}>
-          {prediction && (
-            <Chip label="Predicción guardada" color="success" size="small" />
-          )}
-          {isLocked && !prediction && (
-            <Chip label="Límite pasado" color="error" size="small" />
-          )}
+          {prediction && <Chip label="Predicción guardada" color="success" size="small" />}
+          {isLocked && !prediction && <Chip label="Límite pasado" color="error" size="small" />}
           {!isLocked && hoursUntilDeadline <= 48 && (
-            <Chip
-              label={`${Math.round(hoursUntilDeadline)}h restantes`}
-              color="warning"
-              size="small"
-            />
+            <Chip label={`${Math.round(hoursUntilDeadline)}h restantes`} color="warning" size="small" />
           )}
         </Box>
       </Box>
 
-      {/* Predicción ya guardada */}
+      {/* Predicción guardada */}
       {prediction && (
         <Box sx={{ backgroundColor: "#E6F9F1", p: 2, borderRadius: 1, mb: 2 }}>
-          <Typography variant="subtitle2" sx={{ fontWeight: "bold", mb: 1 }}>
-            Tu predicción:
-          </Typography>
-          <Box
-            sx={{
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              gap: 2,
-            }}
-          >
-            <Typography variant="h6">
-              {match.homeTeamFlag} {match.homeTeam}
-            </Typography>
-            <Typography
-              variant="h5"
-              sx={{ fontWeight: "bold", color: "primary.main" }}
-            >
+          <Typography variant="subtitle2" sx={{ fontWeight: "bold", mb: 1 }}>Tu predicción:</Typography>
+          <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 2 }}>
+            <Typography variant="h6">{match.homeTeamFlag} {match.homeTeam}</Typography>
+            <Typography variant="h5" sx={{ fontWeight: "bold", color: "primary.main" }}>
               {prediction.homeScore} - {prediction.awayScore}
             </Typography>
-            <Typography variant="h6">
-              {match.awayTeam} {match.awayTeamFlag}
-            </Typography>
+            <Typography variant="h6">{match.awayTeam} {match.awayTeamFlag}</Typography>
           </Box>
         </Box>
       )}
 
-      {/* Formulario de predicción */}
+      {/* Formulario */}
       {!prediction && (
         <>
-          <Box
-            sx={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 2,
-              mb: 2,
-            }}
-          >
+          <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 2, mb: 2 }}>
             <Box sx={{ textAlign: "right", flex: 1 }}>
-              <Typography sx={{ mb: 1 }}>
-                {match.homeTeamFlag} {match.homeTeam}
-              </Typography>
+              <Typography sx={{ mb: 1 }}>{match.homeTeamFlag} {match.homeTeam}</Typography>
               <TextField
-                type="number"
-                inputProps={{ min: 0, max: 99, disabled: isLocked }}
-                value={homeScore}
-                onChange={(e) => setHomeScore(e.target.value)}
-                disabled={isLocked || isSaving}
-                size="small"
-                sx={{ width: 80 }}
+                type="number" inputProps={{ min: 0, max: 99, disabled: isLocked }}
+                value={homeScore} onChange={(e) => setHomeScore(e.target.value)}
+                disabled={isLocked || isSaving} size="small" sx={{ width: 80 }}
               />
             </Box>
-
-            <Typography variant="h6" sx={{ fontWeight: "bold" }}>
-              -
-            </Typography>
-
+            <Typography variant="h6" sx={{ fontWeight: "bold" }}>-</Typography>
             <Box sx={{ textAlign: "left", flex: 1 }}>
-              <Typography sx={{ mb: 1 }}>
-                {match.awayTeam} {match.awayTeamFlag}
-              </Typography>
+              <Typography sx={{ mb: 1 }}>{match.awayTeam} {match.awayTeamFlag}</Typography>
               <TextField
-                type="number"
-                inputProps={{ min: 0, max: 99, disabled: isLocked }}
-                value={awayScore}
-                onChange={(e) => setAwayScore(e.target.value)}
-                disabled={isLocked || isSaving}
-                size="small"
-                sx={{ width: 80 }}
+                type="number" inputProps={{ min: 0, max: 99, disabled: isLocked }}
+                value={awayScore} onChange={(e) => setAwayScore(e.target.value)}
+                disabled={isLocked || isSaving} size="small" sx={{ width: 80 }}
               />
             </Box>
           </Box>
-
           {isLocked ? (
-            <Alert severity="error">
-              No se puede predecir: el plazo venció 24 horas antes del partido
-            </Alert>
+            <Alert severity="error">No se puede predecir: el plazo venció 24 horas antes del partido</Alert>
           ) : (
-            <Button
-              variant="contained"
-              fullWidth
-              onClick={handleSavePrediction}
-              disabled={!homeScore || !awayScore || isSaving || !canMakePrediction}
-            >
-              {isSaving ? (
-                <CircularProgress size={20} />
-              ) : (
-                "Guardar Predicción"
-              )}
+            <Button variant="contained" fullWidth onClick={handleSavePrediction}
+              disabled={!homeScore || !awayScore || isSaving || !canMakePrediction}>
+              {isSaving ? <CircularProgress size={20} /> : "Guardar Predicción"}
             </Button>
           )}
         </>
@@ -215,24 +153,56 @@ export const MatchPredictionForm: React.FC<MatchPredictionFormProps> = ({
       {match.isFinished && (
         <Box sx={{ mt: 2, p: 1, backgroundColor: "#FFF8F0", borderRadius: 1, border: "1px solid #FFE0B2" }}>
           <Typography variant="caption" sx={{ fontWeight: "bold" }}>
-            Resultado oficial: {match.homeTeam} {match.homeScore} -{" "}
-            {match.awayScore} {match.awayTeam}
+            Resultado oficial: {match.homeTeam} {match.homeScore} - {match.awayScore} {match.awayTeam}
           </Typography>
           {prediction && (
             <Typography variant="caption" sx={{ display: "block", mt: 0.5 }}>
-              {prediction.homeScore === match.homeScore &&
-              prediction.awayScore === match.awayScore
+              {prediction.homeScore === match.homeScore && prediction.awayScore === match.awayScore
                 ? "Acertaste el resultado exacto! (+3 pts)"
-                : (prediction.homeScore > prediction.awayScore &&
-                      (match.homeScore ?? 0) > (match.awayScore ?? 0)) ||
-                    (prediction.homeScore < prediction.awayScore &&
-                      (match.homeScore ?? 0) < (match.awayScore ?? 0)) ||
-                    (prediction.homeScore === prediction.awayScore &&
-                      match.homeScore === match.awayScore)
+                : (prediction.homeScore > prediction.awayScore && (match.homeScore ?? 0) > (match.awayScore ?? 0)) ||
+                  (prediction.homeScore < prediction.awayScore && (match.homeScore ?? 0) < (match.awayScore ?? 0)) ||
+                  (prediction.homeScore === prediction.awayScore && match.homeScore === match.awayScore)
                   ? "Acertaste el ganador (+1 pt)"
                   : "No acertaste esta vez"}
             </Typography>
           )}
+        </Box>
+      )}
+
+      {/* Ver predicciones ajenas (solo después del deadline) */}
+      {deadlinePassed && user && (
+        <Box sx={{ mt: 1.5 }}>
+          <Divider sx={{ mb: 1 }} />
+          <Button
+            size="small" variant="text" color="inherit"
+            sx={{ fontSize: "0.75rem", color: "text.secondary" }}
+            onClick={handleToggleOthers}
+          >
+            {showOthers ? "▲ Ocultar predicciones" : "▼ Ver predicciones de otros"}
+          </Button>
+          <Collapse in={showOthers}>
+            {loadingOthers ? (
+              <Box sx={{ textAlign: "center", py: 1 }}><CircularProgress size={16} /></Box>
+            ) : others.length === 0 ? (
+              <Typography variant="caption" sx={{ color: "text.secondary", display: "block", mt: 1 }}>
+                Nadie más predijo este partido.
+              </Typography>
+            ) : (
+              <List dense disablePadding>
+                {others.map((o, i) => (
+                  <ListItem key={i} disableGutters sx={{ py: 0.25 }}>
+                    <ListItemText
+                      primary={
+                        <Typography variant="caption">
+                          <strong>{o.userName}</strong>: {match.homeTeamFlag} {o.homeScore} - {o.awayScore} {match.awayTeamFlag}
+                        </Typography>
+                      }
+                    />
+                  </ListItem>
+                ))}
+              </List>
+            )}
+          </Collapse>
         </Box>
       )}
     </Box>
