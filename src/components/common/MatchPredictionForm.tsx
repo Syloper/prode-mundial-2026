@@ -123,8 +123,13 @@ export const MatchPredictionForm: React.FC<MatchPredictionFormProps> = ({ match 
             <Box sx={{ textAlign: "right", flex: 1 }}>
               <Typography sx={{ mb: 1 }}>{match.homeTeamFlag} {match.homeTeam}</Typography>
               <TextField
-                type="number" inputProps={{ min: 0, max: 99, disabled: isLocked }}
-                value={homeScore} onChange={(e) => setHomeScore(e.target.value)}
+                type="text"
+                inputProps={{ inputMode: "numeric", maxLength: 2 }}
+                value={homeScore}
+                onChange={(e) => {
+                  const v = e.target.value.replace(/[^0-9]/g, "").slice(0, 2);
+                  setHomeScore(v);
+                }}
                 disabled={isLocked || isSaving} size="small" sx={{ width: 80 }}
               />
             </Box>
@@ -132,8 +137,13 @@ export const MatchPredictionForm: React.FC<MatchPredictionFormProps> = ({ match 
             <Box sx={{ textAlign: "left", flex: 1 }}>
               <Typography sx={{ mb: 1 }}>{match.awayTeam} {match.awayTeamFlag}</Typography>
               <TextField
-                type="number" inputProps={{ min: 0, max: 99, disabled: isLocked }}
-                value={awayScore} onChange={(e) => setAwayScore(e.target.value)}
+                type="text"
+                inputProps={{ inputMode: "numeric", maxLength: 2 }}
+                value={awayScore}
+                onChange={(e) => {
+                  const v = e.target.value.replace(/[^0-9]/g, "").slice(0, 2);
+                  setAwayScore(v);
+                }}
                 disabled={isLocked || isSaving} size="small" sx={{ width: 80 }}
               />
             </Box>
