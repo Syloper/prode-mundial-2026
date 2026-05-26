@@ -28,19 +28,64 @@ Encontrás estas credenciales en **Supabase → Settings → API**.
 
 ## Base de datos
 
-Ejecutá el script en el SQL Editor de Supabase:
+Ejecutá los scripts **en este orden** en el SQL Editor de Supabase (Dashboard → SQL Editor):
 
-```
-supabase/schema.sql          ← schema completo + 72 partidos de grupos
-supabase/seed_knockout.sql   ← 32 partidos de eliminación directa (16avos a final)
-```
+1. `supabase/schema.sql` — tablas, RLS, trigger de perfiles y 72 partidos de grupos
+2. `supabase/seed_knockout.sql` — 32 partidos de eliminación directa (16avos a final)
 
-Luego registrate en la app y promovete a admin:
+**Importante:** corré ambos scripts **antes** de registrarte en la app. El registro crea el usuario en Auth y, si el trigger está activo, una fila en `profiles` automáticamente.
+
+Luego registrate en la app y promovete a admin (reemplazá el UUID por el de **Authentication → Users → User UID**):
 
 ```sql
 UPDATE public.profiles SET role = 'admin'
-WHERE id = (SELECT id FROM auth.users WHERE email = 'tu@email.com');
+WHERE id = 'TU_USER_UID_AQUI';
 ```
+
+### Login exitoso pero no entra a la app
+
+**Síntoma:** el login responde OK y el token queda guardado en `localStorage` (`prode-auth`), pero la app vuelve a `/login`. En la consola o Network aparece:
+
+```json
+{ "code": "PGRST116", "message": "Cannot coerce the result to a single JSON object" }
+```
+
+**Causa:** Supabase Auth tiene tu usuario, pero **no hay fila en `public.profiles`**. Suele pasar si te registraste antes de ejecutar `schema.sql`, o si el trigger `on_auth_user_created` no quedó instalado.
+
+**Solución (manual):**
+
+1. Supabase → **Authentication → Users** → abrí tu usuario y copiá el **User UID**.
+2. SQL Editor → ejecutá (completá con tus datos):
+
+
+
+```sql
+INSERT INTO public.profiles (id, name, dni, role)
+VALUES (
+  'TU_USER_UID_AQUI',
+  'Tu Nombre',
+  '12345678',
+  'user'
+);
+```
+
+3. Recargá la app (`F5`). No hace falta volver a loguearte si el token sigue en el navegador.
+
+**Prevención:** verificá que el trigger exista después de correr `schema.sql`:
+
+```sql
+SELECT tgname
+FROM pg_trigger t
+JOIN pg_class c ON t.tgrelid = c.oid
+JOIN pg_namespace n ON c.relnamespace = n.oid
+WHERE n.nspname = 'auth'
+  AND c.relname = 'users'
+  AND tgname = 'on_auth_user_created';
+```
+
+Si no devuelve filas, volvé a ejecutar en SQL Editor el bloque de `handle_new_user` y `on_auth_user_created` de `schema.sql` (aprox. líneas 88–110).
+
+> **Nota:** un `INSERT ... SELECT` desde `auth.users` puede fallar con `permission denied` según el rol del editor. No des permisos `SELECT` sobre `auth.users` a `anon`. Usá el UID del panel como arriba.
 
 ## Desarrollo
 
