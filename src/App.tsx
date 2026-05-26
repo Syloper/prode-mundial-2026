@@ -20,7 +20,9 @@ import { AdminDashboard } from "./pages/AdminDashboard";
 import { ProfilePage } from "./pages/ProfilePage";
 import { BracketPage } from "./pages/BracketPage";
 import { DataEntryDashboard } from "./pages/DataEntryDashboard";
+import { AddMatchPage } from "./pages/AddMatchPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
+import { isAddMatchFormEnabled } from "./config/features";
 
 // Custom Layout wrapper to conditionally render Navbar
 const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -93,7 +95,13 @@ function App() {
                         />
                         <Route
                           path="/admin/add-match"
-                          element={<Navigate to="/admin" replace />}
+                          element={
+                            isAddMatchFormEnabled ? (
+                              <AddMatchPage />
+                            ) : (
+                              <Navigate to="/admin" replace />
+                            )
+                          }
                         />
                         <Route
                           path="/admin"
