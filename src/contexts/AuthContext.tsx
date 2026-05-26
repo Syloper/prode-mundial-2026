@@ -35,6 +35,14 @@ async function buildUserFromSession(session: Session): Promise<User | null> {
   };
 }
 
+async function resolveUserFromSession(session: Session): Promise<User | null> {
+  const user = await buildUserFromSession(session);
+  if (!user) {
+    await supabase.auth.signOut();
+  }
+  return user;
+}
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
@@ -43,31 +51,54 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (session) {
-        const u = await buildUserFromSession(session);
-        setUser(u);
-      }
-      setIsLoading(false);
-    });
+    let mounted = true;
+    let subscription: { unsubscribe: () => void } | undefined;
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      if (session) {
-        const u = await buildUserFromSession(session);
-        setUser(u);
-      } else {
+    const applySession = async (session: Session | null) => {
+      if (!mounted) return;
+      if (!session) {
         setUser(null);
+        return;
       }
-    });
+      try {
+        const u = await resolveUserFromSession(session);
+        if (mounted) setUser(u);
+      } catch {
+        if (mounted) setUser(null);
+      }
+    };
 
-    return () => subscription.unsubscribe();
+    void supabase.auth
+      .getSession()
+      .then(({ data: { session } }) => applySession(session))
+      .catch(() => {
+        if (mounted) setUser(null);
+      })
+      .finally(() => {
+        if (mounted) setIsLoading(false);
+      });
+
+    // Evita deadlock de Supabase al registrar el listener durante la init del token.
+    const subscribeTimer = window.setTimeout(() => {
+      const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+        // No usar await ni llamadas a supabase directamente dentro del callback.
+        window.setTimeout(() => {
+          void applySession(session);
+        }, 0);
+      });
+      subscription = data.subscription;
+    }, 0);
+
+    return () => {
+      mounted = false;
+      window.clearTimeout(subscribeTimer);
+      subscription?.unsubscribe();
+    };
   }, []);
 
   const login = useCallback(async (email: string, password: string) => {
     setError(null);
-    const { error: authError } = await supabase.auth.signInWithPassword({
+    const { data, error: authError } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
@@ -79,11 +110,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       setError(message);
       throw new Error(message);
     }
+
+    if (data.session) {
+      const u = await resolveUserFromSession(data.session);
+      if (!u) {
+        const message = "Tu cuenta no está disponible. Contactá al administrador.";
+        setError(message);
+        throw new Error(message);
+      }
+      setUser(u);
+    }
   }, []);
 
   const register = useCallback(async (data: RegisterData) => {
     setError(null);
-    const { error: authError } = await supabase.auth.signUp({
+    const { data: signUpData, error: authError } = await supabase.auth.signUp({
       email: data.email,
       password: data.password,
       options: {
@@ -100,6 +141,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           : authError.message;
       setError(message);
       throw new Error(message);
+    }
+
+    if (signUpData.session) {
+      const u = await resolveUserFromSession(signUpData.session);
+      setUser(u);
     }
   }, []);
 
