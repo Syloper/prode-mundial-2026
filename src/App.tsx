@@ -1,5 +1,5 @@
 import React from "react";
-import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation, Navigate } from "react-router-dom";
 import { ThemeProvider } from "@mui/material/styles";
 import CssBaseline from "@mui/material/CssBaseline";
 import { theme } from "./theme";
@@ -90,6 +90,10 @@ function App() {
                               <DataEntryDashboard />
                             </ProtectedRoute>
                           }
+                        />
+                        <Route
+                          path="/admin/add-match"
+                          element={<Navigate to="/admin" replace />}
                         />
                         <Route
                           path="/admin"
