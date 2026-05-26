@@ -1,5 +1,5 @@
 import React from "react";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { ThemeProvider } from "@mui/material/styles";
 import CssBaseline from "@mui/material/CssBaseline";
 import { theme } from "./theme";
@@ -22,6 +22,20 @@ import { BracketPage } from "./pages/BracketPage";
 import { DataEntryDashboard } from "./pages/DataEntryDashboard";
 import { NotFoundPage } from "./pages/NotFoundPage";
 
+// Custom Layout wrapper to conditionally render Navbar
+const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const location = useLocation();
+  // No Navbar on /login or /register
+  const hideNavbar = location.pathname === "/login" || location.pathname === "/register";
+  return (
+    <>
+      {!hideNavbar && <Navbar />}
+      <NotificationSnackbar />
+      {children}
+    </>
+  );
+};
+
 function App() {
   return (
     <ErrorBoundary>
@@ -31,10 +45,9 @@ function App() {
           <NotificationProvider>
             <CompanyProvider>
               <PrizeProvider>
-                  <PredictionProvider>
-                    <BrowserRouter>
-                      <Navbar />
-                      <NotificationSnackbar />
+                <PredictionProvider>
+                  <BrowserRouter>
+                    <AppLayout>
                       <Routes>
                         <Route path="/login" element={<LoginPage />} />
                         <Route path="/register" element={<RegisterPage />} />
@@ -88,8 +101,9 @@ function App() {
                         />
                         <Route path="*" element={<NotFoundPage />} />
                       </Routes>
-                    </BrowserRouter>
-                  </PredictionProvider>
+                    </AppLayout>
+                  </BrowserRouter>
+                </PredictionProvider>
               </PrizeProvider>
             </CompanyProvider>
           </NotificationProvider>
