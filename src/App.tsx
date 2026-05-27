@@ -1,5 +1,5 @@
 import React from "react";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation, Navigate } from "react-router-dom";
 import { ThemeProvider } from "@mui/material/styles";
 import CssBaseline from "@mui/material/CssBaseline";
 import { theme } from "./theme";
@@ -20,7 +20,23 @@ import { AdminDashboard } from "./pages/AdminDashboard";
 import { ProfilePage } from "./pages/ProfilePage";
 import { BracketPage } from "./pages/BracketPage";
 import { DataEntryDashboard } from "./pages/DataEntryDashboard";
+import { AddMatchPage } from "./pages/AddMatchPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
+import { isAddMatchFormEnabled } from "./config/features";
+
+// Custom Layout wrapper to conditionally render Navbar
+const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const location = useLocation();
+  // No Navbar on /login or /register
+  const hideNavbar = location.pathname === "/login" || location.pathname === "/register";
+  return (
+    <>
+      {!hideNavbar && <Navbar />}
+      <NotificationSnackbar />
+      {children}
+    </>
+  );
+};
 
 function App() {
   return (
@@ -31,10 +47,9 @@ function App() {
           <NotificationProvider>
             <CompanyProvider>
               <PrizeProvider>
-                  <PredictionProvider>
-                    <BrowserRouter>
-                      <Navbar />
-                      <NotificationSnackbar />
+                <PredictionProvider>
+                  <BrowserRouter>
+                    <AppLayout>
                       <Routes>
                         <Route path="/login" element={<LoginPage />} />
                         <Route path="/register" element={<RegisterPage />} />
@@ -79,6 +94,16 @@ function App() {
                           }
                         />
                         <Route
+                          path="/admin/add-match"
+                          element={
+                            isAddMatchFormEnabled ? (
+                              <AddMatchPage />
+                            ) : (
+                              <Navigate to="/admin" replace />
+                            )
+                          }
+                        />
+                        <Route
                           path="/admin"
                           element={
                             <ProtectedRoute adminOnly>
@@ -88,8 +113,9 @@ function App() {
                         />
                         <Route path="*" element={<NotFoundPage />} />
                       </Routes>
-                    </BrowserRouter>
-                  </PredictionProvider>
+                    </AppLayout>
+                  </BrowserRouter>
+                </PredictionProvider>
               </PrizeProvider>
             </CompanyProvider>
           </NotificationProvider>

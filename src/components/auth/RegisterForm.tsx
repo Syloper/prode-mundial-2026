@@ -1,7 +1,8 @@
-import React from "react";
+import React, { useState } from "react";
+import { Eye, EyeOff } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { TextField, Button, Box, Alert, Typography } from "@mui/material";
+import { TextField, Button, Box, Alert, Typography, IconButton, InputAdornment } from "@mui/material";
 import { registerSchema, RegisterFormData } from "../../utils/validators";
 import { useAuth } from "../../hooks/useAuth";
 import { useNavigate } from "react-router-dom";
@@ -14,6 +15,7 @@ export const RegisterForm: React.FC = () => {
   } = useForm<RegisterFormData>({ resolver: zodResolver(registerSchema) });
   const { register: registerUser, error } = useAuth();
   const navigate = useNavigate();
+  const [showPassword, setShowPassword] = useState(false);
 
   const onSubmit = async (data: RegisterFormData) => {
     try {
@@ -67,14 +69,28 @@ export const RegisterForm: React.FC = () => {
       <TextField
         {...register("password")}
         label="Contraseña"
-        type="password"
+        type={showPassword ? "text" : "password"}
         fullWidth
         margin="normal"
         autoComplete="new-password"
         error={!!errors.password}
         helperText={errors.password?.message}
+        InputProps={{
+          endAdornment: (
+            <InputAdornment position="end">
+              <IconButton
+                aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                onClick={() => setShowPassword((prev) => !prev)}
+                onMouseDown={(e) => e.preventDefault()} // evita que el input pierda foco
+                edge="end"
+              >
+                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+              </IconButton>
+            </InputAdornment>
+          ),
+        }}
       />
-<Typography variant="caption" sx={{ color: "#666", display: "block", mt: 1 }}>
+      <Typography variant="caption" sx={{ color: "#666", display: "block", mt: 1 }}>
         La contraseña debe tener al menos 8 caracteres, una mayúscula y un número.
       </Typography>
       <Button

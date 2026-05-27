@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   Container,
   Typography,
@@ -16,6 +16,7 @@ import { AddMatchForm } from "../components/admin/AddMatchForm";
 import { CompanyConfigComponent } from "../components/admin/CompanyConfig";
 import { DangerZone } from "../components/admin/DangerZone";
 import { UsersDashboard } from "../components/admin/UsersDashboard";
+import { isAddMatchFormEnabled } from "../config/features";
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -32,6 +33,27 @@ const TabPanel: React.FC<TabPanelProps> = ({ children, value, index }) => (
 export const AdminDashboard: React.FC = () => {
   const [tab, setTab] = useState(0);
 
+  const tabs = useMemo(() => {
+    const items = [
+      { label: "👥 Usuarios", content: <UsersDashboard /> },
+      { label: "🏆 Crear Premio", content: <PrizeForm /> },
+      { label: "🎁 Entregar Premio", content: <PrizeAssignment /> },
+      { label: "📜 Historial", content: <PrizeHistory /> },
+      { label: "⚽ Resultados", content: <MatchResultsLoader /> },
+    ];
+
+    if (isAddMatchFormEnabled) {
+      items.push({ label: "➕ Nuevo partido", content: <AddMatchForm /> });
+    }
+
+    items.push(
+      { label: "⚙️ Configuración", content: <CompanyConfigComponent /> },
+      { label: "⚠️ Zona peligrosa", content: <DangerZone /> }
+    );
+
+    return items;
+  }, []);
+
   return (
     <ProtectedRoute adminOnly>
       <Container maxWidth="xl" sx={{ py: 4 }}>
@@ -46,40 +68,16 @@ export const AdminDashboard: React.FC = () => {
             scrollButtons="auto"
             sx={{ borderBottom: "1px solid #e0e0e0" }}
           >
-            <Tab label="👥 Usuarios" />
-            <Tab label="🏆 Crear Premio" />
-            <Tab label="🎁 Entregar Premio" />
-            <Tab label="📜 Historial" />
-            <Tab label="⚽ Resultados" />
-            <Tab label="➕ Nuevo partido" />
-            <Tab label="⚙️ Configuración" />
-            <Tab label="⚠️ Zona peligrosa" />
+            {tabs.map((item) => (
+              <Tab key={item.label} label={item.label} />
+            ))}
           </Tabs>
           <Box sx={{ p: 3 }}>
-            <TabPanel value={tab} index={0}>
-              <UsersDashboard />
-            </TabPanel>
-            <TabPanel value={tab} index={1}>
-              <PrizeForm />
-            </TabPanel>
-            <TabPanel value={tab} index={2}>
-              <PrizeAssignment />
-            </TabPanel>
-            <TabPanel value={tab} index={3}>
-              <PrizeHistory />
-            </TabPanel>
-            <TabPanel value={tab} index={4}>
-              <MatchResultsLoader />
-            </TabPanel>
-            <TabPanel value={tab} index={5}>
-              <AddMatchForm />
-            </TabPanel>
-            <TabPanel value={tab} index={6}>
-              <CompanyConfigComponent />
-            </TabPanel>
-            <TabPanel value={tab} index={7}>
-              <DangerZone />
-            </TabPanel>
+            {tabs.map((item, index) => (
+              <TabPanel key={item.label} value={tab} index={index}>
+                {item.content}
+              </TabPanel>
+            ))}
           </Box>
         </Paper>
       </Container>
