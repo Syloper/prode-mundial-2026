@@ -1,5 +1,5 @@
 import React from "react";
-import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation, Navigate } from "react-router-dom";
 import { ThemeProvider } from "@mui/material/styles";
 import CssBaseline from "@mui/material/CssBaseline";
 import { theme } from "./theme";
@@ -20,7 +20,9 @@ import { AdminDashboard } from "./pages/AdminDashboard";
 import { ProfilePage } from "./pages/ProfilePage";
 import { BracketPage } from "./pages/BracketPage";
 import { DataEntryDashboard } from "./pages/DataEntryDashboard";
+import { AddMatchPage } from "./pages/AddMatchPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
+import { isAddMatchFormEnabled } from "./config/features";
 
 // Custom Layout wrapper to conditionally render Navbar
 const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -89,6 +91,16 @@ function App() {
                             <ProtectedRoute allowedRoles={["admin", "data_entry"]}>
                               <DataEntryDashboard />
                             </ProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/admin/add-match"
+                          element={
+                            isAddMatchFormEnabled ? (
+                              <AddMatchPage />
+                            ) : (
+                              <Navigate to="/admin" replace />
+                            )
                           }
                         />
                         <Route

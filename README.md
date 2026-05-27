@@ -32,8 +32,13 @@ Ejecutá los scripts **en este orden** en el SQL Editor de Supabase (Dashboard �
 
 1. `supabase/schema.sql` — tablas, RLS, trigger de perfiles y 72 partidos de grupos
 2. `supabase/seed_knockout.sql` — 32 partidos de eliminación directa (16avos a final)
+3. `supabase/add_data_entry_role.sql` — rol data_entry y políticas de carga de resultados
+4. `supabase/add_profiles_update_admin.sql` — admins pueden editar perfiles ajenos
+5. `supabase/add_user_management.sql` — columna `is_active` y función `admin_delete_user`
+6. `supabase/add_users_with_email_fn.sql` — listado de usuarios con email (panel admin)
+7. `supabase/get_match_predictions_fn.sql` — predicciones visibles tras el deadline
 
-**Importante:** corré ambos scripts **antes** de registrarte en la app. El registro crea el usuario en Auth y, si el trigger está activo, una fila en `profiles` automáticamente.
+**Importante:** corré `schema.sql` y `seed_knockout.sql` **antes** de registrarte en la app. El registro crea el usuario en Auth y, si el trigger está activo, una fila en `profiles` automáticamente.
 
 Luego registrate en la app y promovete a admin (reemplazá el UUID por el de **Authentication → Users → User UID**):
 
@@ -86,6 +91,23 @@ WHERE n.nspname = 'auth'
 Si no devuelve filas, volvé a ejecutar en SQL Editor el bloque de `handle_new_user` y `on_auth_user_created` de `schema.sql` (aprox. líneas 88–110).
 
 > **Nota:** un `INSERT ... SELECT` desde `auth.users` puede fallar con `permission denied` según el rol del editor. No des permisos `SELECT` sobre `auth.users` a `anon`. Usá el UID del panel como arriba.
+
+### Panel admin: "Could not find the function public.get_users_with_email"
+
+**Causa:** la vista de usuarios en `/admin` llama a la RPC `get_users_with_email`, pero esa función no está creada en tu proyecto de Supabase (solo existe el script en el repo).
+
+**Solución:** en **Supabase → SQL Editor**, ejecutá en orden:
+
+1. `supabase/add_user_management.sql` (si aún no lo corriste; agrega `is_active` y `admin_delete_user`)
+2. `supabase/add_users_with_email_fn.sql`
+
+Recargá `/admin`. Si el error persiste, en **Settings → API** usá "Reload schema" o esperá unos segundos a que PostgREST actualice la caché.
+
+### Panel admin: "structure of query does not match function result type"
+
+**Causa:** `auth.users.email` es `varchar` en Supabase, pero la función declara `text`. PostgreSQL exige que coincidan exactamente.
+
+**Solución:** volvé a ejecutar `supabase/add_users_with_email_fn.sql` (incluye casts `::text` en el SELECT).
 
 ## Desarrollo
 
