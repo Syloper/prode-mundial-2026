@@ -135,10 +135,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       },
     });
     if (authError) {
+      const raw = authError.message ?? "";
+      const isDuplicateDni =
+        raw.includes("profiles_dni_unique") ||
+        raw.toLowerCase().includes("duplicate key") ||
+        raw === "Database error saving new user";
       const message =
         authError.message === "User already registered"
           ? "Este email ya está registrado"
-          : authError.message;
+          : isDuplicateDni
+            ? "Este DNI ya está registrado"
+            : raw;
       setError(message);
       throw new Error(message);
     }
