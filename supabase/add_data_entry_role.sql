@@ -24,6 +24,7 @@ as $$
 $$;
 
 -- 3. Actualizar la política de UPDATE en matches para incluir data_entry
+--    (el trigger guard_matches_update limita columnas para data_entry)
 drop policy if exists "matches_update_admin" on public.matches;
 create policy "matches_update_results"
   on public.matches

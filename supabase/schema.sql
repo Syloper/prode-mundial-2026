@@ -17,6 +17,7 @@ create table if not exists public.profiles (
   dni         text not null,
   role        text not null default 'user' check (role in ('admin', 'user', 'data_entry')),
   company_code text,
+  is_active   boolean not null default true,
   created_at  timestamptz not null default now()
 );
 
@@ -85,7 +86,7 @@ create table if not exists public.app_config (
 -- FUNCIONES Y TRIGGERS
 -- ============================================================
 
--- Trigger: crea perfil automáticamente al registrarse
+-- Trigger: crea perfil automáticamente al registrarse (rol fijo, sin metadata privilegiada)
 create or replace function public.handle_new_user()
 returns trigger
 language plpgsql
@@ -97,8 +98,8 @@ begin
     new.id,
     coalesce(new.raw_user_meta_data->>'name', 'Usuario'),
     coalesce(new.raw_user_meta_data->>'dni', ''),
-    coalesce(new.raw_user_meta_data->>'role', 'user'),
-    nullif(new.raw_user_meta_data->>'company_code', '')
+    'user',
+    null
   );
   return new;
 end;
@@ -109,14 +110,29 @@ create trigger on_auth_user_created
   after insert on auth.users
   for each row execute procedure public.handle_new_user();
 
--- Helper: verifica si el usuario actual es admin
+-- Helper: cuenta activa
+create or replace function public.is_active_user()
+returns boolean
+language sql
+security definer set search_path = public
+stable
+as $$
+  select exists (
+    select 1 from public.profiles
+    where id = auth.uid() and is_active = true
+  );
+$$;
+
+-- Helper: verifica si el usuario actual es admin activo
 create or replace function public.is_admin()
 returns boolean
 language sql
 security definer set search_path = public
+stable
 as $$
   select exists (
-    select 1 from public.profiles where id = auth.uid() and role = 'admin'
+    select 1 from public.profiles
+    where id = auth.uid() and role = 'admin' and is_active = true
   );
 $$;
 
@@ -124,12 +140,86 @@ create or replace function public.can_load_results()
 returns boolean
 language sql
 security definer set search_path = public
+stable
 as $$
   select exists (
     select 1 from public.profiles
-    where id = auth.uid() and role in ('admin', 'data_entry')
+    where id = auth.uid()
+      and role in ('admin', 'data_entry')
+      and is_active = true
   );
 $$;
+
+-- Impide que usuarios cambien su propio rol o estado activo
+create or replace function public.guard_profiles_update()
+returns trigger
+language plpgsql
+security definer set search_path = public
+as $$
+begin
+  -- SQL Editor / service role (sin JWT)
+  if auth.uid() is null then
+    return new;
+  end if;
+
+  if public.is_admin() then
+    return new;
+  end if;
+
+  new.role := old.role;
+  new.is_active := old.is_active;
+  return new;
+end;
+$$;
+
+drop trigger if exists profiles_guard_sensitive_columns on public.profiles;
+create trigger profiles_guard_sensitive_columns
+  before update on public.profiles
+  for each row execute procedure public.guard_profiles_update();
+
+-- data_entry solo puede actualizar columnas de resultado en partidos
+create or replace function public.guard_matches_update()
+returns trigger
+language plpgsql
+security definer set search_path = public
+as $$
+begin
+  -- SQL Editor / service role (sin JWT)
+  if auth.uid() is null then
+    return new;
+  end if;
+
+  if public.is_admin() then
+    return new;
+  end if;
+
+  if exists (
+    select 1 from public.profiles
+    where id = auth.uid() and role = 'data_entry' and is_active = true
+  ) then
+    if new.id is distinct from old.id
+       or new.home_team is distinct from old.home_team
+       or new.away_team is distinct from old.away_team
+       or new.home_team_flag is distinct from old.home_team_flag
+       or new.away_team_flag is distinct from old.away_team_flag
+       or new.group_name is distinct from old.group_name
+       or new.scheduled_date is distinct from old.scheduled_date
+       or new.result_deadline is distinct from old.result_deadline
+       or new.phase is distinct from old.phase
+    then
+      raise exception 'data_entry solo puede actualizar home_score, away_score e is_finished';
+    end if;
+    return new;
+  end if;
+
+  raise exception 'Acceso denegado';
+end;
+$$;
+
+drop trigger if exists matches_guard_update on public.matches;
+create trigger matches_guard_update
+  before update on public.matches
+  for each row execute procedure public.guard_matches_update();
 
 -- Función: ranking global (calcula puntos de todos los usuarios)
 create or replace function public.get_rankings()
@@ -185,7 +275,7 @@ create policy "profiles_select" on public.profiles
   for select using (auth.uid() = id or public.is_admin());
 
 create policy "profiles_update_own" on public.profiles
-  for update using (id = auth.uid());
+  for update using (id = auth.uid() and public.is_active_user());
 
 create policy "profiles_update_admin" on public.profiles
   for update using (public.is_admin());
@@ -200,25 +290,40 @@ create policy "matches_update_results" on public.matches
 create policy "matches_insert_admin" on public.matches
   for insert with check (public.is_admin());
 
--- Predictions: usuarios autenticados ven todas; solo insertan la propia antes del deadline
+-- Predictions: propias siempre; ajenas solo post-deadline; admins ven todas
 create policy "predictions_select" on public.predictions
-  for select using (auth.uid() is not null);
+  for select using (
+    public.is_active_user()
+    and (
+      user_id = auth.uid()
+      or public.is_admin()
+      or exists (
+        select 1 from public.matches m
+        where m.id = match_id
+          and (m.is_finished = true or m.result_deadline <= now())
+      )
+    )
+  );
 
 create policy "predictions_insert_own" on public.predictions
   for insert with check (
-    auth.uid() = user_id and
-    exists (
+    auth.uid() = user_id
+    and public.is_active_user()
+    and exists (
       select 1 from public.matches
       where id = match_id and result_deadline > now()
     )
   );
+
+create policy "predictions_insert_admin" on public.predictions
+  for insert with check (public.is_admin());
 
 create policy "predictions_delete_admin" on public.predictions
   for delete using (is_admin());
 
 -- Prizes: lectura para autenticados; escritura solo admins
 create policy "prizes_select" on public.prizes
-  for select using (auth.uid() is not null);
+  for select using (auth.uid() is not null and public.is_active_user());
 
 create policy "prizes_insert_admin" on public.prizes
   for insert with check (public.is_admin());
@@ -228,7 +333,7 @@ create policy "prizes_update_admin" on public.prizes
 
 -- Prize assignments: lectura para autenticados; solo admins asignan
 create policy "prize_assignments_select" on public.prize_assignments
-  for select using (auth.uid() is not null);
+  for select using (auth.uid() is not null and public.is_active_user());
 
 create policy "prize_assignments_insert_admin" on public.prize_assignments
   for insert with check (public.is_admin());

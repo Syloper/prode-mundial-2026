@@ -13,12 +13,14 @@ declare
   v_deadline timestamptz;
   v_finished boolean;
 begin
-  -- Verificar que el usuario esté autenticado
   if auth.uid() is null then
     raise exception 'No autenticado';
   end if;
 
-  -- Verificar que el deadline ya pasó (no queremos mostrar predicciones antes)
+  if not public.is_active_user() then
+    raise exception 'Cuenta desactivada';
+  end if;
+
   select m.result_deadline, m.is_finished
     into v_deadline, v_finished
     from public.matches m
