@@ -344,6 +344,18 @@ create policy "predictions_insert_admin" on public.predictions
 create policy "predictions_delete_admin" on public.predictions
   for delete using (is_admin());
 
+create policy "predictions_delete_own" on public.predictions
+  for delete using (
+    auth.uid() = user_id
+    and public.is_active_user()
+    and exists (
+      select 1 from public.matches
+      where id = match_id
+        and is_finished = false
+        and scheduled_date > now() + interval '3 days'
+    )
+  );
+
 -- Prizes: lectura para autenticados; escritura solo admins
 create policy "prizes_select" on public.prizes
   for select using (auth.uid() is not null and public.is_active_user());

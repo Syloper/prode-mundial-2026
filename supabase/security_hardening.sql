@@ -184,6 +184,19 @@ drop policy if exists "predictions_insert_admin" on public.predictions;
 create policy "predictions_insert_admin" on public.predictions
   for insert with check (public.is_admin());
 
+drop policy if exists "predictions_delete_own" on public.predictions;
+create policy "predictions_delete_own" on public.predictions
+  for delete using (
+    auth.uid() = user_id
+    and public.is_active_user()
+    and exists (
+      select 1 from public.matches
+      where id = match_id
+        and is_finished = false
+        and scheduled_date > now() + interval '3 days'
+    )
+  );
+
 -- Prizes y asignaciones
 drop policy if exists "prizes_select" on public.prizes;
 create policy "prizes_select" on public.prizes

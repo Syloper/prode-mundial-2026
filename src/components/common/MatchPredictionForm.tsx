@@ -26,7 +26,7 @@ const mobileSmallTypography = {
 };
 
 export const MatchPredictionForm: React.FC<MatchPredictionFormProps> = ({ match }) => {
-  const { getPrediction, savePrediction, isPredictionLocked, canPredict } = usePrediction();
+  const { getPrediction, savePrediction, deletePrediction, isPredictionLocked, canPredict, canCancelPrediction } = usePrediction();
   const { user } = useAuth();
   const { addNotification } = useNotification();
   const [homeScore, setHomeScore] = useState("");
@@ -39,6 +39,7 @@ export const MatchPredictionForm: React.FC<MatchPredictionFormProps> = ({ match 
   const prediction = user ? getPrediction(match.id, user.id) : null;
   const isLocked = !user || match.isFinished || isPredictionLocked(match.resultDeadline, match.id, user.id);
   const canMakePrediction = !!user && !isLocked && canPredict(match.resultDeadline);
+  const canCancel = !!user && !!prediction && !match.isFinished && canCancelPrediction(match.scheduledDate);
   const deadlinePassed = match.isFinished || new Date() > new Date(match.resultDeadline);
 
   const hoursUntilDeadline =
@@ -59,6 +60,19 @@ export const MatchPredictionForm: React.FC<MatchPredictionFormProps> = ({ match 
       setHomeScore(""); setAwayScore("");
     } catch (err) {
       addNotification(err instanceof Error ? err.message : "Error al guardar la predicción", "error");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleCancelPrediction = async () => {
+    if (!user || !prediction) return;
+    setIsSaving(true);
+    try {
+      await deletePrediction(match.id, user.id);
+      addNotification("Predicción cancelada — podés hacer una nueva", "success");
+    } catch (err) {
+      addNotification(err instanceof Error ? err.message : "Error al cancelar la predicción", "error");
     } finally {
       setIsSaving(false);
     }
@@ -111,6 +125,19 @@ export const MatchPredictionForm: React.FC<MatchPredictionFormProps> = ({ match 
             </Typography>
             <Typography variant="h6" sx={mobileSmallTypography}>{match.awayTeam} <FlagImg flag={match.awayTeamFlag} /></Typography>
           </Box>
+          {canCancel && (
+            <Button
+              variant="outlined"
+              color="error"
+              size="small"
+              fullWidth
+              onClick={handleCancelPrediction}
+              disabled={isSaving}
+              sx={{ mt: 2, ...mobileSmallTypography }}
+            >
+              {isSaving ? <CircularProgress size={20} /> : "Cancelar predicción"}
+            </Button>
+          )}
         </Box>
       )}
 

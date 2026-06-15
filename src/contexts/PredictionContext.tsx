@@ -19,7 +19,9 @@ interface PredictionContextType {
     userId: string
   ) => Promise<void>;
   getPrediction: (matchId: string, userId: string) => UserPrediction | null;
+  deletePrediction: (matchId: string, userId: string) => Promise<void>;
   canPredict: (deadlineDate: Date) => boolean;
+  canCancelPrediction: (scheduledDate: Date) => boolean;
   isPredictionLocked: (
     deadlineDate: Date,
     matchId: string,
@@ -131,8 +133,36 @@ export const PredictionProvider: React.FC<{ children: React.ReactNode }> = ({
     [predictions]
   );
 
+  const deletePrediction = useCallback(
+    async (matchId: string, userId: string) => {
+      const key = `${userId}-${matchId}`;
+
+      const { error } = await supabase
+        .from("predictions")
+        .delete()
+        .eq("match_id", parseInt(matchId))
+        .eq("user_id", userId);
+
+      if (error) {
+        throw new Error("No se pudo cancelar la predicción");
+      }
+
+      setPredictions((prev) => {
+        const next = { ...prev };
+        delete next[key];
+        return next;
+      });
+    },
+    []
+  );
+
   const canPredict = useCallback((deadlineDate: Date): boolean => {
     return new Date(deadlineDate) > new Date();
+  }, []);
+
+  const canCancelPrediction = useCallback((scheduledDate: Date): boolean => {
+    const threeDaysMs = 3 * 24 * 60 * 60 * 1000;
+    return new Date(scheduledDate).getTime() - Date.now() > threeDaysMs;
   }, []);
 
   const isPredictionLocked = useCallback(
@@ -151,7 +181,9 @@ export const PredictionProvider: React.FC<{ children: React.ReactNode }> = ({
         isLoading,
         savePrediction,
         getPrediction,
+        deletePrediction,
         canPredict,
+        canCancelPrediction,
         isPredictionLocked,
       }}
     >
