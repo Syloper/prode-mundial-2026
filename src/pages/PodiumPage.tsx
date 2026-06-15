@@ -15,10 +15,14 @@ import {
   Chip,
   CircularProgress,
   Alert,
+  IconButton,
+  Tooltip,
 } from "@mui/material";
+import VisibilityIcon from "@mui/icons-material/Visibility";
 import { supabase } from "../lib/supabase";
 import { RankingEntry } from "../types";
 import { useAuth } from "../hooks/useAuth";
+import { PlayerScoreBreakdownDialog } from "../components/common/PlayerScoreBreakdownDialog";
 
 const PODIUM_COLORS = ["#E6F9F1", "#F0F3F4", "#FFF3E0"] as const;
 const PODIUM_MEDALS = ["🥇", "🥈", "🥉"] as const;
@@ -28,6 +32,7 @@ export const PodiumPage: React.FC = () => {
   const [ranking, setRanking] = useState<RankingEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedPlayer, setSelectedPlayer] = useState<RankingEntry | null>(null);
 
   useEffect(() => {
     const fetchRanking = async () => {
@@ -102,6 +107,9 @@ export const PodiumPage: React.FC = () => {
   const top3 = ranking.slice(0, 3);
   const rest = ranking.slice(3);
 
+  const openPlayerDetail = (entry: RankingEntry) => setSelectedPlayer(entry);
+  const closePlayerDetail = () => setSelectedPlayer(null);
+
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
       <Typography variant="h4" sx={{ mb: 3, fontWeight: "bold" }}>
@@ -160,6 +168,7 @@ export const PodiumPage: React.FC = () => {
         {top3.map((entry, idx) => (
           <Card
             key={entry.userId}
+            onClick={() => openPlayerDetail(entry)}
             sx={{
               flex: 1,
               minWidth: 180,
@@ -168,6 +177,9 @@ export const PodiumPage: React.FC = () => {
               backgroundColor: PODIUM_COLORS[idx],
               border: entry.userId === user?.id ? "2px solid #00B96B" : "none",
               boxShadow: entry.userId === user?.id ? 4 : 1,
+              cursor: "pointer",
+              transition: "transform 0.15s ease, box-shadow 0.15s ease",
+              "&:hover": { transform: "translateY(-2px)", boxShadow: 4 },
             }}
           >
             <CardContent>
@@ -186,6 +198,9 @@ export const PodiumPage: React.FC = () => {
               <Typography variant="caption" sx={{ color: "#666", display: "block", mt: 1 }}>
                 Exactos: {entry.exactScores} | Ganador: {entry.correctWinners}
               </Typography>
+              <Typography variant="caption" sx={{ color: "primary.main", display: "block", mt: 1 }}>
+                Ver detalle de aciertos
+              </Typography>
             </CardContent>
           </Card>
         ))}
@@ -201,16 +216,19 @@ export const PodiumPage: React.FC = () => {
               <TableCell align="right"><strong>Puntos</strong></TableCell>
               <TableCell align="right"><strong>Exactos (+3)</strong></TableCell>
               <TableCell align="right"><strong>Ganador (+1)</strong></TableCell>
+              <TableCell align="center"><strong>Detalle</strong></TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {ranking.map((entry) => (
               <TableRow
                 key={entry.userId}
+                onClick={() => openPlayerDetail(entry)}
                 sx={{
                   backgroundColor:
                     entry.userId === user?.id ? "#E6F9F1" : "inherit",
                   fontWeight: entry.userId === user?.id ? "bold" : "normal",
+                  cursor: "pointer",
                 }}
                 hover
               >
@@ -233,11 +251,29 @@ export const PodiumPage: React.FC = () => {
                 </TableCell>
                 <TableCell align="right">{entry.exactScores}</TableCell>
                 <TableCell align="right">{entry.correctWinners}</TableCell>
+                <TableCell align="center" onClick={(e) => e.stopPropagation()}>
+                  <Tooltip title="Ver aciertos por partido">
+                    <IconButton
+                      size="small"
+                      color="primary"
+                      aria-label={`Ver detalle de ${entry.userName}`}
+                      onClick={() => openPlayerDetail(entry)}
+                    >
+                      <VisibilityIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
       </TableContainer>
+
+      <PlayerScoreBreakdownDialog
+        open={selectedPlayer !== null}
+        player={selectedPlayer}
+        onClose={closePlayerDetail}
+      />
 
       {rest.length === 0 && ranking.length > 0 && (
         <Typography variant="caption" sx={{ display: "block", mt: 2, color: "#666" }}>

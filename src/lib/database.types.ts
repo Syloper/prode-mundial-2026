@@ -217,6 +217,24 @@ export interface Database {
         Args: { p_match_id: number };
         Returns: Array<{ user_name: string; home_score: number; away_score: number }>;
       };
+      get_user_score_breakdown: {
+        Args: { p_user_id: string };
+        Returns: Array<{
+          match_id: number;
+          home_team: string;
+          away_team: string;
+          home_team_flag: string;
+          away_team_flag: string;
+          scheduled_date: string;
+          phase: string | null;
+          group_name: string;
+          predicted_home: number;
+          predicted_away: number;
+          actual_home: number;
+          actual_away: number;
+          points: number;
+        }>;
+      };
     };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;
