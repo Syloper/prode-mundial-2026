@@ -37,6 +37,10 @@ Ejecutá los scripts **en este orden** en el SQL Editor de Supabase (Dashboard �
 5. `supabase/add_user_management.sql` — columna `is_active` y función `admin_delete_user`
 6. `supabase/add_users_with_email_fn.sql` — listado de usuarios con email (panel admin)
 7. `supabase/get_match_predictions_fn.sql` — predicciones visibles tras el deadline
+8. `supabase/security_hardening.sql` — endurecimiento de RLS, triggers y funciones sensibles
+9. `supabase/rankings_auth_and_dni_unique.sql` — ranking solo para autenticados y DNI único
+10. `supabase/predictions_delete_own.sql` — cancelar predicción propia (>3 días antes del partido)
+11. `supabase/get_user_score_breakdown_fn.sql` — desglose de aciertos por jugador en el ranking
 
 **Importante:** corré `schema.sql` y `seed_knockout.sql` **antes** de registrarte en la app. El registro crea el usuario en Auth y, si el trigger está activo, una fila en `profiles` automáticamente.
 
@@ -109,6 +113,18 @@ Recargá `/admin`. Si el error persiste, en **Settings → API** usá "Reload sc
 
 **Solución:** volvé a ejecutar `supabase/add_users_with_email_fn.sql` (incluye casts `::text` en el SELECT).
 
+### Ranking: "Could not find the function public.get_user_score_breakdown"
+
+**Causa:** el modal de detalle de aciertos en `/podium` llama a la RPC `get_user_score_breakdown`, pero la función no está creada en Supabase.
+
+**Solución:** ejecutá `supabase/get_user_score_breakdown_fn.sql` en el SQL Editor y recargá la página.
+
+### Cancelar predicción falla silenciosamente
+
+**Causa:** falta la política RLS `predictions_delete_own`.
+
+**Solución:** ejecutá `supabase/predictions_delete_own.sql` en el SQL Editor.
+
 ## Desarrollo
 
 ```bash
@@ -129,6 +145,8 @@ npm run preview
 
 El límite para cargar predicciones cierra **24 horas antes** de cada partido.
 
+Podés **cancelar una predicción propia** y volver a cargarla si faltan **más de 3 días** para la fecha del partido (`scheduled_date`).
+
 ---
 
 ## Funcionalidades
@@ -136,7 +154,8 @@ El límite para cargar predicciones cierra **24 horas antes** de cada partido.
 ### Usuarios
 - Registro y login con email (emails `@syloper.com` no requieren confirmación)
 - Predicción de resultados partido a partido
-- Ranking general con podio top 3
+- Cancelación de predicción propia (más de 3 días antes del partido)
+- Ranking general con podio top 3 y **detalle de aciertos** por jugador (modal partido a partido)
 - Historial de premios recibidos
 
 ### Admin (`/admin`)
@@ -170,7 +189,7 @@ src/
 ├── components/
 │   ├── admin/        # Formularios y tablas del panel admin
 │   ├── auth/         # Login, registro, rutas protegidas
-│   └── common/       # Navbar, formulario de predicción, error boundary
+│   └── common/       # Navbar, predicciones, modal de ranking, error boundary
 ├── contexts/         # Auth, predicciones, premios, empresa, notificaciones
 ├── hooks/            # useMatches, usePrediction, usePrize, useAuth...
 ├── pages/            # GroupsPage, PodiumPage, AdminDashboard, Login, Register
@@ -179,8 +198,11 @@ src/
 └── theme.ts          # Tema Syloper (verde #00B96B, gris #2A3235)
 
 supabase/
-├── schema.sql           # Tablas, RLS, triggers, función get_rankings()
-└── seed_knockout.sql    # Partidos de eliminación directa
+├── schema.sql                      # Tablas, RLS, triggers, get_rankings()
+├── seed_knockout.sql               # Partidos de eliminación directa
+├── security_hardening.sql          # Endurecimiento de RLS y funciones
+├── predictions_delete_own.sql      # Cancelar predicción propia
+└── get_user_score_breakdown_fn.sql # Desglose de puntos por jugador
 ```
 
 Server en railway: prode-mundial-2026-syloper.up.railway.app
