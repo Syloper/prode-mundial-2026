@@ -260,7 +260,7 @@ export const MatchPredictionForm: React.FC<MatchPredictionFormProps> = ({ match 
 
           {supportsPenalties && !showPenaltyPicker && homeScore && awayScore && parsedHome !== parsedAway && (
             <Typography variant="caption" sx={{ display: "block", textAlign: "center", mb: 1, color: "text.secondary", ...mobileSmallTypography }}>
-              Si el partido va a penales, predijá un empate en el marcador.
+              Si el partido va a penales, predecí un empate en el marcador.
             </Typography>
           )}
 

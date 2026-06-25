@@ -35,7 +35,16 @@ create table if not exists public.matches (
   away_score      integer check (away_score >= 0),
   is_finished     boolean not null default false,
   phase           text,
-  penalty_winner  text check (penalty_winner is null or penalty_winner in ('home', 'away'))
+  penalty_winner  text,
+  constraint matches_penalty_winner_only_on_tie check (
+    penalty_winner is null
+    or (
+      home_score is not null
+      and away_score is not null
+      and home_score = away_score
+      and penalty_winner in ('home', 'away')
+    )
+  )
 );
 
 -- Predicciones de usuarios
@@ -45,9 +54,13 @@ create table if not exists public.predictions (
   user_id     uuid not null references auth.users(id) on delete cascade,
   home_score  integer not null check (home_score >= 0),
   away_score  integer not null check (away_score >= 0),
-  penalty_winner text check (penalty_winner is null or penalty_winner in ('home', 'away')),
+  penalty_winner text,
   created_at  timestamptz not null default now(),
-  unique (match_id, user_id)
+  unique (match_id, user_id),
+  constraint predictions_penalty_winner_only_on_tie check (
+    penalty_winner is null
+    or (home_score = away_score and penalty_winner in ('home', 'away'))
+  )
 );
 
 -- Premios

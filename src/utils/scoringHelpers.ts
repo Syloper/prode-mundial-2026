@@ -1,4 +1,4 @@
-import { PenaltyWinner } from "./matchHelpers";
+import { PenaltyWinner } from "../types";
 
 export interface PointsBreakdown {
   total: number;

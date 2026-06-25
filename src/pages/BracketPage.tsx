@@ -159,8 +159,10 @@ export const BracketPage: React.FC = () => {
   const matchById = Object.fromEntries(matches.map((m) => [parseInt(m.id), m]));
 
   const winner = (m: Match | undefined) => {
-    if (!m?.isFinished || m.homeScore === undefined || m.awayScore === undefined) return "";
-    return m.homeScore > m.awayScore ? m.homeTeam : m.awayScore > m.homeScore ? m.awayTeam : "";
+    if (!m) return "";
+    const side = matchAdvancingTeam(m);
+    if (!side) return "";
+    return side === "home" ? m.homeTeam : m.awayTeam;
   };
 
   const champion   = winner(matchById[104]);

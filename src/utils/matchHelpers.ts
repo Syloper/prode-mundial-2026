@@ -1,4 +1,4 @@
-export type PenaltyWinner = "home" | "away";
+import { PenaltyWinner } from "../types";
 
 /** Fases eliminatorias donde se puede predecir ganador en penales (no aplica en Tercer puesto). */
 export function matchSupportsPenaltyPrediction(match: { phase?: string }): boolean {

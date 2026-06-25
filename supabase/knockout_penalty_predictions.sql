@@ -4,12 +4,32 @@
 -- ============================================================
 
 alter table public.matches
-  add column if not exists penalty_winner text
-  check (penalty_winner is null or penalty_winner in ('home', 'away'));
+  add column if not exists penalty_winner text;
 
 alter table public.predictions
-  add column if not exists penalty_winner text
-  check (penalty_winner is null or penalty_winner in ('home', 'away'));
+  add column if not exists penalty_winner text;
+
+alter table public.matches drop constraint if exists matches_penalty_winner_check;
+alter table public.predictions drop constraint if exists predictions_penalty_winner_check;
+alter table public.matches drop constraint if exists matches_penalty_winner_only_on_tie;
+alter table public.predictions drop constraint if exists predictions_penalty_winner_only_on_tie;
+
+alter table public.matches
+  add constraint matches_penalty_winner_only_on_tie check (
+    penalty_winner is null
+    or (
+      home_score is not null
+      and away_score is not null
+      and home_score = away_score
+      and penalty_winner in ('home', 'away')
+    )
+  );
+
+alter table public.predictions
+  add constraint predictions_penalty_winner_only_on_tie check (
+    penalty_winner is null
+    or (home_score = away_score and penalty_winner in ('home', 'away'))
+  );
 
 -- Puntos: base (3 exacto / 1 ganador o empate) + bonus penales (+2) en fases eliminatorias excepto Tercer puesto
 create or replace function public.calculate_prediction_points(
