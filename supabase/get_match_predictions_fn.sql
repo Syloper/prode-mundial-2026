@@ -1,11 +1,16 @@
 -- Devuelve las predicciones de un partido con el nombre del usuario.
 -- Solo accesible si el deadline ya pasó o el partido finalizó.
--- security definer: bypasses RLS para leer profiles ajenos.
+-- Requiere: supabase/knockout_penalty_predictions.sql (columna penalty_winner)
 
 drop function if exists public.get_match_predictions(integer);
 
 create or replace function public.get_match_predictions(p_match_id integer)
-returns table (user_name text, home_score integer, away_score integer)
+returns table (
+  user_name       text,
+  home_score      integer,
+  away_score      integer,
+  penalty_winner  text
+)
 language plpgsql security definer stable
 set search_path = public
 as $$
@@ -38,7 +43,8 @@ begin
     select
       pr.name::text,
       pred.home_score::integer,
-      pred.away_score::integer
+      pred.away_score::integer,
+      pred.penalty_winner::text
     from public.predictions pred
     join public.profiles pr on pr.id = pred.user_id
     where pred.match_id = p_match_id

@@ -152,6 +152,12 @@ export const PodiumPage: React.FC = () => {
             </Box>
             <Typography variant="body2">Predicción incorrecta</Typography>
           </Box>
+          <Box sx={{ width: "100%", mt: 0.5 }}>
+            <Typography variant="body2" sx={{ color: "text.secondary" }}>
+              <strong>Eliminatorias (excepto 3.er puesto):</strong> si predijiste empate en el marcador (incluye prórroga),
+              indicá quién gana en penales. +2 pts extra si acertás el ganador en penales (máx. 5 pts por partido).
+            </Typography>
+          </Box>
         </Box>
       </Box>
 

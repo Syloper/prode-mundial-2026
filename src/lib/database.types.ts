@@ -45,6 +45,7 @@ export interface Database {
           away_score: number | null;
           is_finished: boolean;
           phase: string | null;
+          penalty_winner: "home" | "away" | null;
         };
         Insert: {
           id: number;
@@ -59,6 +60,7 @@ export interface Database {
           away_score?: number | null;
           is_finished?: boolean;
           phase?: string | null;
+          penalty_winner?: "home" | "away" | null;
         };
         Update: {
           home_team?: string;
@@ -72,6 +74,7 @@ export interface Database {
           away_score?: number | null;
           is_finished?: boolean;
           phase?: string | null;
+          penalty_winner?: "home" | "away" | null;
         };
         Relationships: [];
       };
@@ -82,6 +85,7 @@ export interface Database {
           user_id: string;
           home_score: number;
           away_score: number;
+          penalty_winner: "home" | "away" | null;
           created_at: string;
         };
         Insert: {
@@ -90,11 +94,13 @@ export interface Database {
           user_id: string;
           home_score: number;
           away_score: number;
+          penalty_winner?: "home" | "away" | null;
           created_at?: string;
         };
         Update: {
           home_score?: number;
           away_score?: number;
+          penalty_winner?: "home" | "away" | null;
         };
         Relationships: [];
       };
@@ -215,7 +221,12 @@ export interface Database {
       };
       get_match_predictions: {
         Args: { p_match_id: number };
-        Returns: Array<{ user_name: string; home_score: number; away_score: number }>;
+        Returns: Array<{
+          user_name: string;
+          home_score: number;
+          away_score: number;
+          penalty_winner: "home" | "away" | null;
+        }>;
       };
       get_user_score_breakdown: {
         Args: { p_user_id: string };
@@ -230,8 +241,10 @@ export interface Database {
           group_name: string;
           predicted_home: number;
           predicted_away: number;
+          predicted_penalty_winner: "home" | "away" | null;
           actual_home: number;
           actual_away: number;
+          actual_penalty_winner: "home" | "away" | null;
           points: number;
         }>;
       };

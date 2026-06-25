@@ -18,9 +18,10 @@ import {
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import { supabase } from "../../lib/supabase";
-import { RankingEntry } from "../../types";
+import { RankingEntry, PenaltyWinner } from "../../types";
 import { formatDate } from "../../utils/dateHelpers";
 import { FlagImg } from "./FlagImg";
+import { formatPenaltyWinnerLabel } from "../../utils/matchHelpers";
 
 export interface ScoreBreakdownEntry {
   matchId: number;
@@ -33,8 +34,10 @@ export interface ScoreBreakdownEntry {
   group: string;
   predictedHome: number;
   predictedAway: number;
+  predictedPenaltyWinner?: PenaltyWinner;
   actualHome: number;
   actualAway: number;
+  actualPenaltyWinner?: PenaltyWinner;
   points: number;
 }
 
@@ -45,9 +48,20 @@ interface PlayerScoreBreakdownDialogProps {
 }
 
 const pointsChip = (points: number) => {
-  if (points === 3) return <Chip label="+3 exacto" size="small" color="success" />;
-  if (points === 1) return <Chip label="+1 ganador" size="small" color="default" />;
+  if (points === 5) return <Chip label="+5 exacto+pen." size="small" color="success" />;
+  if (points === 3) return <Chip label="+3" size="small" color="success" />;
+  if (points === 1) return <Chip label="+1" size="small" color="default" />;
   return <Chip label="0 pts" size="small" variant="outlined" />;
+};
+
+const formatBreakdownScore = (
+  home: number,
+  away: number,
+  penaltyWinner: PenaltyWinner | undefined,
+  teams: { homeTeam: string; awayTeam: string }
+) => {
+  if (!penaltyWinner) return `${home} - ${away}`;
+  return `${home} - ${away} (pen. ${formatPenaltyWinnerLabel(penaltyWinner, teams)})`;
 };
 
 export const PlayerScoreBreakdownDialog: React.FC<PlayerScoreBreakdownDialogProps> = ({
@@ -94,8 +108,10 @@ export const PlayerScoreBreakdownDialog: React.FC<PlayerScoreBreakdownDialogProp
             group_name: string;
             predicted_home: number;
             predicted_away: number;
+            predicted_penalty_winner: PenaltyWinner | null;
             actual_home: number;
             actual_away: number;
+            actual_penalty_winner: PenaltyWinner | null;
             points: number;
           }) => ({
             matchId: row.match_id,
@@ -108,8 +124,10 @@ export const PlayerScoreBreakdownDialog: React.FC<PlayerScoreBreakdownDialogProp
             group: row.group_name,
             predictedHome: row.predicted_home,
             predictedAway: row.predicted_away,
+            predictedPenaltyWinner: row.predicted_penalty_winner ?? undefined,
             actualHome: row.actual_home,
             actualAway: row.actual_away,
+            actualPenaltyWinner: row.actual_penalty_winner ?? undefined,
             points: row.points,
           })
         )
@@ -184,10 +202,20 @@ export const PlayerScoreBreakdownDialog: React.FC<PlayerScoreBreakdownDialogProp
                         </Typography>
                       </TableCell>
                       <TableCell align="center">
-                        {entry.predictedHome} - {entry.predictedAway}
+                        {formatBreakdownScore(
+                          entry.predictedHome,
+                          entry.predictedAway,
+                          entry.predictedPenaltyWinner,
+                          entry
+                        )}
                       </TableCell>
                       <TableCell align="center">
-                        {entry.actualHome} - {entry.actualAway}
+                        {formatBreakdownScore(
+                          entry.actualHome,
+                          entry.actualAway,
+                          entry.actualPenaltyWinner,
+                          entry
+                        )}
                       </TableCell>
                       <TableCell align="center">{pointsChip(entry.points)}</TableCell>
                     </TableRow>

@@ -34,7 +34,8 @@ create table if not exists public.matches (
   home_score      integer check (home_score >= 0),
   away_score      integer check (away_score >= 0),
   is_finished     boolean not null default false,
-  phase           text
+  phase           text,
+  penalty_winner  text check (penalty_winner is null or penalty_winner in ('home', 'away'))
 );
 
 -- Predicciones de usuarios
@@ -44,6 +45,7 @@ create table if not exists public.predictions (
   user_id     uuid not null references auth.users(id) on delete cascade,
   home_score  integer not null check (home_score >= 0),
   away_score  integer not null check (away_score >= 0),
+  penalty_winner text check (penalty_winner is null or penalty_winner in ('home', 'away')),
   created_at  timestamptz not null default now(),
   unique (match_id, user_id)
 );
@@ -207,7 +209,7 @@ begin
        or new.result_deadline is distinct from old.result_deadline
        or new.phase is distinct from old.phase
     then
-      raise exception 'data_entry solo puede actualizar home_score, away_score e is_finished';
+      raise exception 'data_entry solo puede actualizar home_score, away_score, penalty_winner e is_finished';
     end if;
     return new;
   end if;

@@ -16,6 +16,8 @@ export interface RegisterData {
   password: string;
 }
 
+export type PenaltyWinner = "home" | "away";
+
 export interface Match {
   id: string;
   homeTeam: string;
@@ -28,6 +30,7 @@ export interface Match {
   resultDeadline: Date;
   homeScore?: number;
   awayScore?: number;
+  penaltyWinner?: PenaltyWinner;
   isFinished: boolean;
 }
 

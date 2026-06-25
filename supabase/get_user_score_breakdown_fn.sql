@@ -1,21 +1,24 @@
 -- Desglose de puntos por partido para un jugador (solo partidos finalizados)
+-- Requiere: supabase/knockout_penalty_predictions.sql (columnas y función calculate_prediction_points)
 drop function if exists public.get_user_score_breakdown(uuid);
 
 create or replace function public.get_user_score_breakdown(p_user_id uuid)
 returns table (
-  match_id          integer,
-  home_team         text,
-  away_team         text,
-  home_team_flag    text,
-  away_team_flag    text,
-  scheduled_date    timestamptz,
-  phase             text,
-  group_name        text,
-  predicted_home    integer,
-  predicted_away    integer,
-  actual_home       integer,
-  actual_away       integer,
-  points            integer
+  match_id                  integer,
+  home_team                 text,
+  away_team                 text,
+  home_team_flag            text,
+  away_team_flag            text,
+  scheduled_date            timestamptz,
+  phase                     text,
+  group_name                text,
+  predicted_home            integer,
+  predicted_away            integer,
+  predicted_penalty_winner  text,
+  actual_home               integer,
+  actual_away               integer,
+  actual_penalty_winner     text,
+  points                    integer
 )
 language plpgsql
 security definer
@@ -47,15 +50,15 @@ begin
     m.group_name::text,
     p.home_score::integer,
     p.away_score::integer,
+    p.penalty_winner::text,
     m.home_score::integer,
     m.away_score::integer,
-    (
-      case
-        when p.home_score = m.home_score and p.away_score = m.away_score then 3
-        when (p.home_score > p.away_score) = (m.home_score > m.away_score)
-          and (p.home_score = p.away_score) = (m.home_score = m.away_score) then 1
-        else 0
-      end
+    m.penalty_winner::text,
+    public.calculate_prediction_points(
+      p.home_score, p.away_score,
+      m.home_score, m.away_score,
+      p.penalty_winner, m.penalty_winner,
+      m.phase
     )::integer as points
   from public.predictions p
   join public.matches m on p.match_id = m.id

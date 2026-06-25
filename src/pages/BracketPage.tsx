@@ -3,6 +3,7 @@ import { Container, Typography, Box, Paper, Chip, CircularProgress } from "@mui/
 import { useMatches } from "../hooks/useMatches";
 import { Match } from "../types";
 import { FlagImg } from "../components/common/FlagImg";
+import { matchAdvancingTeam } from "../utils/matchHelpers";
 
 const SLOT_H = 64;       // px por slot de partido en la ronda base (16 equipos)
 const TOTAL_H = 16 * SLOT_H; // 1024px altura total del bracket
@@ -48,12 +49,12 @@ const MatchBox: React.FC<{ match: Match | undefined; highlight?: boolean }> = ({
           <TeamRow
             flag={match.homeTeamFlag} name={match.homeTeam}
             score={match.isFinished ? match.homeScore : undefined}
-            winner={match.isFinished && (match.homeScore ?? 0) > (match.awayScore ?? 0)}
+            winner={matchAdvancingTeam(match) === "home"}
           />
           <TeamRow
             flag={match.awayTeamFlag} name={match.awayTeam}
             score={match.isFinished ? match.awayScore : undefined}
-            winner={match.isFinished && (match.awayScore ?? 0) > (match.homeScore ?? 0)}
+            winner={matchAdvancingTeam(match) === "away"}
           />
         </>
       )}

@@ -1,20 +1,26 @@
 import React, { useState, useCallback } from "react";
 import {
   Box, TextField, Typography, Chip, Button, Alert, CircularProgress,
-  Collapse, List, ListItem, ListItemText, Divider,
+  Collapse, List, ListItem, ListItemText, Divider, ToggleButton, ToggleButtonGroup,
 } from "@mui/material";
-import { Match } from "../../types";
+import { Match, PenaltyWinner } from "../../types";
 import { usePrediction } from "../../hooks/usePrediction";
 import { useAuth } from "../../hooks/useAuth";
 import { useNotification } from "../../hooks/useNotification";
 import { formatDate } from "../../utils/dateHelpers";
 import { supabase } from "../../lib/supabase";
 import { FlagImg } from "./FlagImg";
+import {
+  formatPenaltyWinnerLabel,
+  matchSupportsPenaltyPrediction,
+} from "../../utils/matchHelpers";
+import { calculatePointsBreakdown, describePointsEarned } from "../../utils/scoringHelpers";
 
 interface OtherPrediction {
   userName: string;
   homeScore: number;
   awayScore: number;
+  penaltyWinner?: PenaltyWinner | null;
 }
 
 interface MatchPredictionFormProps {
@@ -25,22 +31,45 @@ const mobileSmallTypography = {
   fontSize: { xs: "12px", sm: "inherit" }
 };
 
+const formatScoreLine = (
+  homeScore: number,
+  awayScore: number,
+  penaltyWinner: PenaltyWinner | null | undefined,
+  match: Match
+) => {
+  const base = `${homeScore} - ${awayScore}`;
+  if (!penaltyWinner) return base;
+  return `${base} (pen. ${formatPenaltyWinnerLabel(penaltyWinner, match)})`;
+};
+
 export const MatchPredictionForm: React.FC<MatchPredictionFormProps> = ({ match }) => {
   const { getPrediction, savePrediction, deletePrediction, isPredictionLocked, canPredict, canCancelPrediction } = usePrediction();
   const { user } = useAuth();
   const { addNotification } = useNotification();
   const [homeScore, setHomeScore] = useState("");
   const [awayScore, setAwayScore] = useState("");
+  const [penaltyWinner, setPenaltyWinner] = useState<PenaltyWinner | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [showOthers, setShowOthers] = useState(false);
   const [others, setOthers] = useState<OtherPrediction[]>([]);
   const [loadingOthers, setLoadingOthers] = useState(false);
 
+  const supportsPenalties = matchSupportsPenaltyPrediction(match);
   const prediction = user ? getPrediction(match.id, user.id) : null;
   const isLocked = !user || match.isFinished || isPredictionLocked(match.resultDeadline, match.id, user.id);
   const canMakePrediction = !!user && !isLocked && canPredict(match.resultDeadline);
   const canCancel = !!user && !!prediction && !match.isFinished && canCancelPrediction(match.scheduledDate);
   const deadlinePassed = match.isFinished || new Date() > new Date(match.resultDeadline);
+
+  const parsedHome = homeScore !== "" ? parseInt(homeScore) : null;
+  const parsedAway = awayScore !== "" ? parseInt(awayScore) : null;
+  const isTieInput =
+    parsedHome !== null &&
+    parsedAway !== null &&
+    !isNaN(parsedHome) &&
+    !isNaN(parsedAway) &&
+    parsedHome === parsedAway;
+  const showPenaltyPicker = supportsPenalties && isTieInput;
 
   const hoursUntilDeadline =
     (new Date(match.resultDeadline).getTime() - Date.now()) / (1000 * 60 * 60);
@@ -53,11 +82,24 @@ export const MatchPredictionForm: React.FC<MatchPredictionFormProps> = ({ match 
     if (isNaN(home) || isNaN(away) || home < 0 || away < 0 || home > 99 || away > 99) {
       addNotification("Ingresá números válidos entre 0 y 99", "error"); return;
     }
+    if (supportsPenalties && home === away && !penaltyWinner) {
+      addNotification("Si predijiste empate, indicá quién gana en penales", "warning");
+      return;
+    }
+
     setIsSaving(true);
     try {
-      await savePrediction(match.id, home, away, user.id);
+      await savePrediction(
+        match.id,
+        home,
+        away,
+        user.id,
+        supportsPenalties && home === away ? penaltyWinner : null
+      );
       addNotification("Predicción guardada correctamente", "success");
-      setHomeScore(""); setAwayScore("");
+      setHomeScore("");
+      setAwayScore("");
+      setPenaltyWinner(null);
     } catch (err) {
       addNotification(err instanceof Error ? err.message : "Error al guardar la predicción", "error");
     } finally {
@@ -90,17 +132,33 @@ export const MatchPredictionForm: React.FC<MatchPredictionFormProps> = ({ match 
         userName: r.user_name,
         homeScore: r.home_score,
         awayScore: r.away_score,
+        penaltyWinner: r.penalty_winner ?? undefined,
       }))
     );
     setLoadingOthers(false);
   }, [showOthers, match.id]);
+
+  const pointsBreakdown =
+    prediction &&
+    match.isFinished &&
+    match.homeScore !== undefined &&
+    match.awayScore !== undefined
+      ? calculatePointsBreakdown(
+          prediction.homeScore,
+          prediction.awayScore,
+          match.homeScore,
+          match.awayScore,
+          prediction.penaltyWinner,
+          match.penaltyWinner,
+          supportsPenalties
+        )
+      : null;
 
   return (
     <Box sx={{
       p: 2, mb: 2, border: "1px solid #eee", borderRadius: 1,
       backgroundColor: isLocked && prediction ? "background.default" : "background.paper",
     }}>
-      {/* Cabecera */}
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2, flexWrap: "wrap", gap: 1 }}>
         <Typography variant="caption" sx={{ color: "#666", ...mobileSmallTypography }}>
           {formatDate(new Date(match.scheduledDate))}
@@ -114,14 +172,13 @@ export const MatchPredictionForm: React.FC<MatchPredictionFormProps> = ({ match 
         </Box>
       </Box>
 
-      {/* Predicción guardada */}
       {prediction && (
         <Box sx={{ backgroundColor: "#E6F9F1", p: 2, borderRadius: 1, mb: 2 }}>
           <Typography variant="subtitle2" sx={{ fontWeight: "bold", mb: 1, ...mobileSmallTypography }}>Tu predicción:</Typography>
-          <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 2 }}>
+          <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 2, flexWrap: "wrap" }}>
             <Typography variant="h6" sx={mobileSmallTypography}><FlagImg flag={match.homeTeamFlag} /> {match.homeTeam}</Typography>
             <Typography variant="h5" sx={{ fontWeight: "bold", color: "primary.main", ...mobileSmallTypography }}>
-              {prediction.homeScore} - {prediction.awayScore}
+              {formatScoreLine(prediction.homeScore, prediction.awayScore, prediction.penaltyWinner, match)}
             </Typography>
             <Typography variant="h6" sx={mobileSmallTypography}>{match.awayTeam} <FlagImg flag={match.awayTeamFlag} /></Typography>
           </Box>
@@ -141,7 +198,6 @@ export const MatchPredictionForm: React.FC<MatchPredictionFormProps> = ({ match 
         </Box>
       )}
 
-      {/* Formulario */}
       {!prediction && (
         <>
           <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 2, mb: 2 }}>
@@ -154,6 +210,9 @@ export const MatchPredictionForm: React.FC<MatchPredictionFormProps> = ({ match 
                 onChange={(e) => {
                   const v = e.target.value.replace(/[^0-9]/g, "").slice(0, 2);
                   setHomeScore(v);
+                  if (v !== "" && awayScore !== "" && parseInt(v) !== parseInt(awayScore)) {
+                    setPenaltyWinner(null);
+                  }
                 }}
                 disabled={isLocked || isSaving} size="small" sx={{ width: 80, ...mobileSmallTypography }}
               />
@@ -168,11 +227,43 @@ export const MatchPredictionForm: React.FC<MatchPredictionFormProps> = ({ match 
                 onChange={(e) => {
                   const v = e.target.value.replace(/[^0-9]/g, "").slice(0, 2);
                   setAwayScore(v);
+                  if (v !== "" && homeScore !== "" && parseInt(v) !== parseInt(homeScore)) {
+                    setPenaltyWinner(null);
+                  }
                 }}
                 disabled={isLocked || isSaving} size="small" sx={{ width: 80, ...mobileSmallTypography }}
               />
             </Box>
           </Box>
+
+          {showPenaltyPicker && (
+            <Box sx={{ mb: 2, textAlign: "center" }}>
+              <Typography variant="caption" sx={{ display: "block", mb: 1, color: "text.secondary", ...mobileSmallTypography }}>
+                ¿Quién gana en penales?
+              </Typography>
+              <ToggleButtonGroup
+                exclusive
+                size="small"
+                value={penaltyWinner}
+                onChange={(_, value: PenaltyWinner | null) => setPenaltyWinner(value)}
+                disabled={isLocked || isSaving}
+              >
+                <ToggleButton value="home" sx={mobileSmallTypography}>
+                  <FlagImg flag={match.homeTeamFlag} /> {match.homeTeam}
+                </ToggleButton>
+                <ToggleButton value="away" sx={mobileSmallTypography}>
+                  {match.awayTeam} <FlagImg flag={match.awayTeamFlag} />
+                </ToggleButton>
+              </ToggleButtonGroup>
+            </Box>
+          )}
+
+          {supportsPenalties && !showPenaltyPicker && homeScore && awayScore && parsedHome !== parsedAway && (
+            <Typography variant="caption" sx={{ display: "block", textAlign: "center", mb: 1, color: "text.secondary", ...mobileSmallTypography }}>
+              Si el partido va a penales, predijá un empate en el marcador.
+            </Typography>
+          )}
+
           {isLocked ? (
             <Alert severity="error" sx={mobileSmallTypography}>
               {match.isFinished
@@ -181,34 +272,35 @@ export const MatchPredictionForm: React.FC<MatchPredictionFormProps> = ({ match 
             </Alert>
           ) : (
             <Button variant="contained" fullWidth onClick={handleSavePrediction}
-              disabled={!homeScore || !awayScore || isSaving || !canMakePrediction} sx={mobileSmallTypography}>
+              disabled={
+                !homeScore ||
+                !awayScore ||
+                isSaving ||
+                !canMakePrediction ||
+                (showPenaltyPicker && !penaltyWinner)
+              }
+              sx={mobileSmallTypography}>
               {isSaving ? <CircularProgress size={20} /> : "Guardar Predicción"}
             </Button>
           )}
         </>
       )}
 
-      {/* Resultado oficial */}
       {match.isFinished && (
         <Box sx={{ mt: 2, p: 1, backgroundColor: "#FFF8F0", borderRadius: 1, border: "1px solid #FFE0B2" }}>
           <Typography variant="caption" sx={{ fontWeight: "bold", ...mobileSmallTypography }}>
-            Resultado oficial: {match.homeTeam} {match.homeScore} - {match.awayScore} {match.awayTeam}
+            Resultado oficial: {match.homeTeam}{" "}
+            {formatScoreLine(match.homeScore ?? 0, match.awayScore ?? 0, match.penaltyWinner, match)}{" "}
+            {match.awayTeam}
           </Typography>
-          {prediction && (
+          {prediction && pointsBreakdown && (
             <Typography variant="caption" sx={{ display: "block", mt: 0.5, ...mobileSmallTypography }}>
-              {prediction.homeScore === match.homeScore && prediction.awayScore === match.awayScore
-                ? "Acertaste el resultado exacto! (+3 pts)"
-                : (prediction.homeScore > prediction.awayScore && (match.homeScore ?? 0) > (match.awayScore ?? 0)) ||
-                  (prediction.homeScore < prediction.awayScore && (match.homeScore ?? 0) < (match.awayScore ?? 0)) ||
-                  (prediction.homeScore === prediction.awayScore && match.homeScore === match.awayScore)
-                  ? "Acertaste el ganador (+1 pt)"
-                  : "No acertaste esta vez"}
+              {describePointsEarned(pointsBreakdown)}
             </Typography>
           )}
         </Box>
       )}
 
-      {/* Ver predicciones ajenas (solo después del deadline) */}
       {deadlinePassed && user && (
         <Box sx={{ mt: 1.5 }}>
           <Divider sx={{ mb: 1 }} />
@@ -233,7 +325,10 @@ export const MatchPredictionForm: React.FC<MatchPredictionFormProps> = ({ match 
                     <ListItemText
                       primary={
                         <Typography variant="caption" sx={mobileSmallTypography}>
-                          <strong>{o.userName}</strong>: <FlagImg flag={match.homeTeamFlag} /> {o.homeScore} - {o.awayScore} <FlagImg flag={match.awayTeamFlag} />
+                          <strong>{o.userName}</strong>:{" "}
+                          <FlagImg flag={match.homeTeamFlag} />{" "}
+                          {formatScoreLine(o.homeScore, o.awayScore, o.penaltyWinner, match)}{" "}
+                          <FlagImg flag={match.awayTeamFlag} />
                         </Typography>
                       }
                     />

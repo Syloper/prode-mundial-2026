@@ -1,10 +1,12 @@
 import React, { createContext, useState, useCallback, useEffect } from "react";
 import { supabase } from "../lib/supabase";
+import { PenaltyWinner } from "../types";
 
 export interface UserPrediction {
   matchId: string;
   homeScore: number;
   awayScore: number;
+  penaltyWinner?: PenaltyWinner;
   createdAt: string;
   userId: string;
 }
@@ -16,7 +18,8 @@ interface PredictionContextType {
     matchId: string,
     homeScore: number,
     awayScore: number,
-    userId: string
+    userId: string,
+    penaltyWinner?: PenaltyWinner | null
   ) => Promise<void>;
   getPrediction: (matchId: string, userId: string) => UserPrediction | null;
   deletePrediction: (matchId: string, userId: string) => Promise<void>;
@@ -58,6 +61,7 @@ export const PredictionProvider: React.FC<{ children: React.ReactNode }> = ({
             matchId: String(p.match_id),
             homeScore: p.home_score,
             awayScore: p.away_score,
+            penaltyWinner: p.penalty_winner ?? undefined,
             createdAt: p.created_at,
             userId: p.user_id,
           };
@@ -89,7 +93,8 @@ export const PredictionProvider: React.FC<{ children: React.ReactNode }> = ({
       matchId: string,
       homeScore: number,
       awayScore: number,
-      userId: string
+      userId: string,
+      penaltyWinner?: PenaltyWinner | null
     ) => {
       const key = `${userId}-${matchId}`;
       if (predictions[key]) return;
@@ -101,6 +106,7 @@ export const PredictionProvider: React.FC<{ children: React.ReactNode }> = ({
           user_id: userId,
           home_score: homeScore,
           away_score: awayScore,
+          penalty_winner: penaltyWinner ?? null,
         })
         .select()
         .single();
@@ -117,6 +123,7 @@ export const PredictionProvider: React.FC<{ children: React.ReactNode }> = ({
             matchId,
             homeScore,
             awayScore,
+            penaltyWinner: data.penalty_winner ?? undefined,
             createdAt: data.created_at,
             userId,
           },

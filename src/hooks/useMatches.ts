@@ -80,6 +80,7 @@ function mapDbMatch(row: {
   away_score: number | null;
   is_finished: boolean;
   phase?: string | null;
+  penalty_winner?: "home" | "away" | null;
 }): Match {
   return {
     id: String(row.id),
@@ -93,6 +94,7 @@ function mapDbMatch(row: {
     resultDeadline: new Date(row.result_deadline),
     homeScore: row.home_score ?? undefined,
     awayScore: row.away_score ?? undefined,
+    penaltyWinner: row.penalty_winner ?? undefined,
     isFinished: row.is_finished,
   };
 }
@@ -137,6 +139,7 @@ export const useMatches = () => {
                     ...m,
                     homeScore: payload.new.home_score ?? undefined,
                     awayScore: payload.new.away_score ?? undefined,
+                    penaltyWinner: payload.new.penalty_winner ?? undefined,
                     isFinished: payload.new.is_finished,
                   }
                 : m
@@ -152,17 +155,35 @@ export const useMatches = () => {
   }, [fetchMatches]);
 
   const updateMatchResult = useCallback(
-    async (matchId: string, homeScore: number, awayScore: number) => {
+    async (
+      matchId: string,
+      homeScore: number,
+      awayScore: number,
+      penaltyWinner?: "home" | "away" | null
+    ) => {
       const { error } = await supabase
         .from("matches")
-        .update({ home_score: homeScore, away_score: awayScore, is_finished: true })
+        .update({
+          home_score: homeScore,
+          away_score: awayScore,
+          penalty_winner: homeScore === awayScore ? (penaltyWinner ?? null) : null,
+          is_finished: true,
+        })
         .eq("id", parseInt(matchId));
 
       if (error) throw new Error("Error al guardar el resultado");
 
       setMatches((prev) =>
         prev.map((m) =>
-          m.id === matchId ? { ...m, homeScore, awayScore, isFinished: true } : m
+          m.id === matchId
+            ? {
+                ...m,
+                homeScore,
+                awayScore,
+                penaltyWinner: homeScore === awayScore ? (penaltyWinner ?? undefined) : undefined,
+                isFinished: true,
+              }
+            : m
         )
       );
     },

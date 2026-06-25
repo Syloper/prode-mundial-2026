@@ -24,12 +24,15 @@ import {
   Typography,
   Divider,
   Autocomplete,
+  ToggleButton,
+  ToggleButtonGroup,
 } from "@mui/material";
 import { TEAM_FLAGS, ALL_TEAMS } from "../../utils/teamFlags";
 import { useMatches } from "../../hooks/useMatches";
 import { useNotification } from "../../hooks/useNotification";
 import { useAuth } from "../../hooks/useAuth";
-import { Match } from "../../types";
+import { Match, PenaltyWinner } from "../../types";
+import { matchSupportsPenaltyPrediction, formatPenaltyWinnerLabel } from "../../utils/matchHelpers";
 
 const toDatetimeLocal = (d: Date) => {
   const pad = (n: number) => String(n).padStart(2, "0");
@@ -54,6 +57,15 @@ export const MatchResultsLoader: React.FC = () => {
   const [scheduledDate, setScheduledDate] = useState("");
   const [homeScore, setHomeScore] = useState("");
   const [awayScore, setAwayScore] = useState("");
+  const [penaltyWinner, setPenaltyWinner] = useState<PenaltyWinner | null>(null);
+
+  const selectedSupportsPenalties = selectedMatch
+    ? matchSupportsPenaltyPrediction(selectedMatch)
+    : false;
+  const selectedIsTie =
+    homeScore !== "" &&
+    awayScore !== "" &&
+    parseInt(homeScore) === parseInt(awayScore);
 
   const handleOpenDialog = (match: Match) => {
     setSelectedMatch(match);
@@ -64,6 +76,7 @@ export const MatchResultsLoader: React.FC = () => {
     setScheduledDate(toDatetimeLocal(new Date(match.scheduledDate)));
     setHomeScore(match.homeScore !== undefined ? String(match.homeScore) : "");
     setAwayScore(match.awayScore !== undefined ? String(match.awayScore) : "");
+    setPenaltyWinner(match.penaltyWinner ?? null);
     setOpenDialog(true);
   };
 
@@ -93,7 +106,15 @@ export const MatchResultsLoader: React.FC = () => {
         const home = parseInt(homeScore);
         const away = parseInt(awayScore);
         if (!isNaN(home) && !isNaN(away) && home >= 0 && away >= 0) {
-          await updateMatchResult(selectedMatch.id, home, away);
+          if (selectedSupportsPenalties && home === away && !penaltyWinner) {
+            throw new Error("Indicá quién ganó en penales cuando el marcador es empate");
+          }
+          await updateMatchResult(
+            selectedMatch.id,
+            home,
+            away,
+            selectedSupportsPenalties && home === away ? penaltyWinner : null
+          );
         }
       }
 
@@ -189,7 +210,11 @@ export const MatchResultsLoader: React.FC = () => {
                         <FlagImg flag={match.homeTeamFlag} /> {match.homeTeam} vs {match.awayTeam} <FlagImg flag={match.awayTeamFlag} />
                       </TableCell>
                       <TableCell sx={{ fontWeight: "bold" }}>
-                        {match.isFinished ? `${match.homeScore} - ${match.awayScore}` : "-"}
+                        {match.isFinished
+                          ? match.penaltyWinner
+                            ? `${match.homeScore} - ${match.awayScore} (pen. ${formatPenaltyWinnerLabel(match.penaltyWinner, match).slice(0, 12)})`
+                            : `${match.homeScore} - ${match.awayScore}`
+                          : "-"}
                       </TableCell>
                       <TableCell align="center">
                         <Chip
@@ -309,12 +334,22 @@ export const MatchResultsLoader: React.FC = () => {
             <Typography variant="subtitle2" sx={{ fontWeight: "bold" }}>
               Resultado (opcional)
             </Typography>
+            <Typography variant="caption" color="text.secondary">
+              Marcador al final del partido (incluye prórroga). Si hay empate en eliminatorias, indicá el ganador en penales.
+            </Typography>
             <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
               <TextField
                 label={homeTeam || "Local"}
                 type="number"
                 value={homeScore}
-                onChange={(e) => setHomeScore(e.target.value)}
+                onChange={(e) => {
+                  setHomeScore(e.target.value);
+                  const away = parseInt(awayScore);
+                  const home = parseInt(e.target.value);
+                  if (!isNaN(home) && !isNaN(away) && home !== away) {
+                    setPenaltyWinner(null);
+                  }
+                }}
                 inputProps={{ min: 0, max: 99 }}
                 fullWidth
                 size="small"
@@ -326,12 +361,37 @@ export const MatchResultsLoader: React.FC = () => {
                 label={awayTeam || "Visitante"}
                 type="number"
                 value={awayScore}
-                onChange={(e) => setAwayScore(e.target.value)}
+                onChange={(e) => {
+                  setAwayScore(e.target.value);
+                  const home = parseInt(homeScore);
+                  const away = parseInt(e.target.value);
+                  if (!isNaN(home) && !isNaN(away) && home !== away) {
+                    setPenaltyWinner(null);
+                  }
+                }}
                 inputProps={{ min: 0, max: 99 }}
                 fullWidth
                 size="small"
               />
             </Box>
+
+            {selectedSupportsPenalties && selectedIsTie && (
+              <Box>
+                <Typography variant="caption" sx={{ display: "block", mb: 1, color: "text.secondary" }}>
+                  Ganador en penales (obligatorio si hay empate)
+                </Typography>
+                <ToggleButtonGroup
+                  exclusive
+                  size="small"
+                  fullWidth
+                  value={penaltyWinner}
+                  onChange={(_, value: PenaltyWinner | null) => setPenaltyWinner(value)}
+                >
+                  <ToggleButton value="home">{homeTeam || "Local"}</ToggleButton>
+                  <ToggleButton value="away">{awayTeam || "Visitante"}</ToggleButton>
+                </ToggleButtonGroup>
+              </Box>
+            )}
           </DialogContent>
           <DialogActions>
             <Button onClick={handleCloseDialog} disabled={isSaving}>
