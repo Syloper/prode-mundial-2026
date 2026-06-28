@@ -178,6 +178,10 @@ export const MatchResultsLoader: React.FC = () => {
                         {new Date(match.scheduledDate).toLocaleDateString("es-AR", {
                           day: "2-digit", month: "2-digit", year: "2-digit",
                         })}
+                        {" "}
+                        {new Date(match.scheduledDate).toLocaleTimeString("es-AR", {
+                          hour: "2-digit", minute: "2-digit",
+                        })}
                       </TableCell>
                       <TableCell sx={{ whiteSpace: "nowrap" }}>
                         {match.phase
@@ -217,15 +221,8 @@ export const MatchResultsLoader: React.FC = () => {
               <Box sx={{ p: 1, backgroundColor: "#f0f0f0", borderRadius: 1 }}>
                 Pendientes: <strong>{pendingMatches.length}</strong> de {matches.length}
               </Box>
-              <Button
-                variant="outlined"
-                color="primary"
-                onClick={handleUpdateKnockout}
-                disabled={isUpdatingKnockout}
-                startIcon={isUpdatingKnockout ? <CircularProgress size={16} /> : undefined}
-              >
-                {isUpdatingKnockout ? "Calculando..." : "⚡ Actualizar cruces 16avos desde grupos"}
-              </Button>
+              {/* Botón "Actualizar cruces 16avos desde grupos" oculto a pedido.
+                  El handler handleUpdateKnockout se mantiene para reactivarlo si hace falta. */}
             </Box>
           </>
         )}
