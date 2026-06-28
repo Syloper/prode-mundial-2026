@@ -42,39 +42,39 @@ VALUES
 (88,  '1° Grupo K',              '3° mejor (D/E/I/J/L)',  '❓','❓', '2026-07-05 22:00:00+00','2026-07-05 17:00:00+00','Eliminación directa','Dieciseisavos'),
 
 -- ============================================================
--- OCTAVOS DE FINAL (R16) — 7-10 julio 2026
+-- OCTAVOS DE FINAL (R16) — 4-7 julio 2026 (horarios en UTC)
 -- ============================================================
-(89,  'Por definir','Por definir','❓','❓', '2026-07-07 17:00:00+00','2026-07-07 12:00:00+00','Eliminación directa','Octavos'),
-(90,  'Por definir','Por definir','❓','❓', '2026-07-07 21:00:00+00','2026-07-07 16:00:00+00','Eliminación directa','Octavos'),
-(91,  'Por definir','Por definir','❓','❓', '2026-07-08 17:00:00+00','2026-07-08 12:00:00+00','Eliminación directa','Octavos'),
-(92,  'Por definir','Por definir','❓','❓', '2026-07-08 21:00:00+00','2026-07-08 16:00:00+00','Eliminación directa','Octavos'),
-(93,  'Por definir','Por definir','❓','❓', '2026-07-09 17:00:00+00','2026-07-09 12:00:00+00','Eliminación directa','Octavos'),
-(94,  'Por definir','Por definir','❓','❓', '2026-07-09 21:00:00+00','2026-07-09 16:00:00+00','Eliminación directa','Octavos'),
-(95,  'Por definir','Por definir','❓','❓', '2026-07-10 17:00:00+00','2026-07-10 12:00:00+00','Eliminación directa','Octavos'),
-(96,  'Por definir','Por definir','❓','❓', '2026-07-10 21:00:00+00','2026-07-10 16:00:00+00','Eliminación directa','Octavos'),
+(89,  'Por definir','Por definir','❓','❓', '2026-07-04 21:00:00+00','2026-07-04 16:00:00+00','Eliminación directa','Octavos'),
+(90,  'Por definir','Por definir','❓','❓', '2026-07-04 17:00:00+00','2026-07-04 12:00:00+00','Eliminación directa','Octavos'),
+(91,  'Por definir','Por definir','❓','❓', '2026-07-05 20:00:00+00','2026-07-05 15:00:00+00','Eliminación directa','Octavos'),
+(92,  'Por definir','Por definir','❓','❓', '2026-07-06 00:00:00+00','2026-07-05 19:00:00+00','Eliminación directa','Octavos'),
+(93,  'Por definir','Por definir','❓','❓', '2026-07-06 19:00:00+00','2026-07-06 14:00:00+00','Eliminación directa','Octavos'),
+(94,  'Por definir','Por definir','❓','❓', '2026-07-07 00:00:00+00','2026-07-06 19:00:00+00','Eliminación directa','Octavos'),
+(95,  'Por definir','Por definir','❓','❓', '2026-07-07 16:00:00+00','2026-07-07 11:00:00+00','Eliminación directa','Octavos'),
+(96,  'Por definir','Por definir','❓','❓', '2026-07-07 20:00:00+00','2026-07-07 15:00:00+00','Eliminación directa','Octavos'),
 
 -- ============================================================
--- CUARTOS DE FINAL — 11-12 julio 2026
+-- CUARTOS DE FINAL — 9-11 julio 2026 (horarios en UTC)
 -- ============================================================
-(97,  'Por definir','Por definir','❓','❓', '2026-07-11 17:00:00+00','2026-07-11 12:00:00+00','Eliminación directa','Cuartos'),
-(98,  'Por definir','Por definir','❓','❓', '2026-07-11 21:00:00+00','2026-07-11 16:00:00+00','Eliminación directa','Cuartos'),
-(99,  'Por definir','Por definir','❓','❓', '2026-07-12 17:00:00+00','2026-07-12 12:00:00+00','Eliminación directa','Cuartos'),
-(100, 'Por definir','Por definir','❓','❓', '2026-07-12 21:00:00+00','2026-07-12 16:00:00+00','Eliminación directa','Cuartos'),
+(97,  'Por definir','Por definir','❓','❓', '2026-07-09 20:00:00+00','2026-07-09 15:00:00+00','Eliminación directa','Cuartos'),
+(98,  'Por definir','Por definir','❓','❓', '2026-07-10 19:00:00+00','2026-07-10 14:00:00+00','Eliminación directa','Cuartos'),
+(99,  'Por definir','Por definir','❓','❓', '2026-07-11 21:00:00+00','2026-07-11 16:00:00+00','Eliminación directa','Cuartos'),
+(100, 'Por definir','Por definir','❓','❓', '2026-07-12 01:00:00+00','2026-07-11 20:00:00+00','Eliminación directa','Cuartos'),
 
 -- ============================================================
--- SEMIFINALES — 14-15 julio 2026
+-- SEMIFINALES — 14-15 julio 2026 (horarios en UTC)
 -- ============================================================
-(101, 'Por definir','Por definir','❓','❓', '2026-07-14 21:00:00+00','2026-07-14 16:00:00+00','Eliminación directa','Semifinal'),
-(102, 'Por definir','Por definir','❓','❓', '2026-07-15 21:00:00+00','2026-07-15 16:00:00+00','Eliminación directa','Semifinal'),
+(101, 'Por definir','Por definir','❓','❓', '2026-07-14 19:00:00+00','2026-07-14 14:00:00+00','Eliminación directa','Semifinal'),
+(102, 'Por definir','Por definir','❓','❓', '2026-07-15 19:00:00+00','2026-07-15 14:00:00+00','Eliminación directa','Semifinal'),
 
 -- ============================================================
--- TERCER PUESTO — 18 julio 2026
+-- TERCER PUESTO — 18 julio 2026 (horario en UTC)
 -- ============================================================
 (103, 'Por definir','Por definir','❓','❓', '2026-07-18 21:00:00+00','2026-07-18 16:00:00+00','Eliminación directa','Tercer puesto'),
 
 -- ============================================================
--- FINAL — 19 julio 2026 · MetLife Stadium, NJ
+-- FINAL — 19 julio 2026 · 15:00 EDT (19:00 UTC) · MetLife Stadium, NJ
 -- ============================================================
-(104, 'Por definir','Por definir','❓','❓', '2026-07-19 21:00:00+00','2026-07-19 16:00:00+00','Eliminación directa','Final')
+(104, 'Por definir','Por definir','❓','❓', '2026-07-19 19:00:00+00','2026-07-19 14:00:00+00','Eliminación directa','Final')
 
 ON CONFLICT (id) DO NOTHING;
