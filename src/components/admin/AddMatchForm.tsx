@@ -79,7 +79,7 @@ export const AddMatchForm: React.FC = () => {
     }
 
     const scheduledDate = new Date(form.scheduledDate);
-    const resultDeadline = new Date(scheduledDate.getTime() - 24 * 60 * 60 * 1000);
+    const resultDeadline = new Date(scheduledDate.getTime() - 5 * 60 * 60 * 1000);
 
     // Obtener el próximo ID disponible
     const { data: maxRow } = await supabase
@@ -128,7 +128,7 @@ export const AddMatchForm: React.FC = () => {
       </Typography>
 
       <Alert severity="info" sx={{ mb: 3 }}>
-        El deadline para predecir se calcula automáticamente como 24 horas antes del
+        El deadline para predecir se calcula automáticamente como 5 horas antes del
         partido. El equipo local y visitante pueden ser cualquier selección clasificada.
       </Alert>
 
@@ -218,7 +218,7 @@ export const AddMatchForm: React.FC = () => {
               fullWidth
               required
               InputLabelProps={{ shrink: true }}
-              helperText="El deadline de predicciones será 24h antes"
+              helperText="El deadline de predicciones será 5h antes"
             />
           </Grid>
 

@@ -49,7 +49,7 @@ export function buildMatchesForSeed(): MatchSeedRow[] {
       baseDate.setUTCHours(hourUtc, 0, 0, 0);
 
       const scheduledDate = new Date(baseDate);
-      const resultDeadline = new Date(scheduledDate.getTime() - 24 * 60 * 60 * 1000);
+      const resultDeadline = new Date(scheduledDate.getTime() - 5 * 60 * 60 * 1000);
 
       result.push({
         id: id++,

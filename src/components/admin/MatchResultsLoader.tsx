@@ -77,7 +77,7 @@ export const MatchResultsLoader: React.FC = () => {
     setIsSaving(true);
     try {
       const newDate = new Date(scheduledDate);
-      const newDeadline = new Date(newDate.getTime() - 24 * 60 * 60 * 1000);
+      const newDeadline = new Date(newDate.getTime() - 5 * 60 * 60 * 1000);
 
       await updateMatch(selectedMatch.id, {
         homeTeam,
@@ -300,7 +300,7 @@ export const MatchResultsLoader: React.FC = () => {
               fullWidth
               size="small"
               InputLabelProps={{ shrink: true }}
-              helperText="El límite de predicción se calculará 24h antes automáticamente"
+              helperText="El límite de predicción se calculará 5h antes automáticamente"
             />
 
             <Divider />

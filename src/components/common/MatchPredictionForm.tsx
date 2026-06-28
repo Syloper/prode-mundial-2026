@@ -177,7 +177,7 @@ export const MatchPredictionForm: React.FC<MatchPredictionFormProps> = ({ match 
             <Alert severity="error" sx={mobileSmallTypography}>
               {match.isFinished
                 ? "El partido ya tiene resultado — no se pueden cargar predicciones"
-                : "No se puede predecir: el plazo venció 24 horas antes del partido"}
+                : "No se puede predecir: el plazo venció 5 horas antes del partido"}
             </Alert>
           ) : (
             <Button variant="contained" fullWidth onClick={handleSavePrediction}
