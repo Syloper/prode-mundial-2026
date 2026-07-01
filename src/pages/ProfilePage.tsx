@@ -162,9 +162,11 @@ export const ProfilePage: React.FC = () => {
               <TextField
                 label="Nombre"
                 value={name}
-                onChange={(e) => setName(e.target.value)}
+                onChange={(e) => setName(e.target.value.slice(0, 25))}
                 fullWidth
                 size="small"
+                inputProps={{ maxLength: 25 }}
+                helperText={`${name.length}/25 caracteres`}
               />
               <Button
                 variant="contained"
